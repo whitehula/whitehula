@@ -1,0 +1,154 @@
+// 修改 parseAndUpdateCopy 函数，使用增量更新而非全量替换
+function parseAndUpdateCopy(jsonStr) {
+    let newData;
+    try {
+        newData = JSON.parse(jsonStr);
+    } catch (e) {
+        updateStatus('❌ AI回复中的JSON格式错误');
+        console.error('JSON解析失败:', e);
+        return;
+    }
+
+    // 记录新增的节点和链接（用于增量更新）
+    const addedNodes = [];
+    const addedLinks = [];
+
+    // 处理新增节点
+    if (newData.nodes) {
+        newData.nodes.forEach(newNode => {
+            const exists = graphDataCopy.nodes.some(n => n.name === newNode.name);
+            if (!exists) {
+                newNode.id = nodeIdCounter++;
+                // 设置节点样式
+                if (newNode.category === 0) {
+                    newNode.symbol = 'circle';
+                    newNode.symbolSize = 25;
+                    // 初始状态设置为不可见（用于生长动画）
+                    newNode.itemStyle = { opacity: 0 };
+                    newNode.label = { show: true, opacity: 0 };
+                } else if (newNode.category === 1) {
+                    newNode.symbol = 'diamond';
+                    newNode.symbolSize = 18;
+                    newNode.itemStyle = { opacity: 0 };
+                    newNode.label = { show: true, opacity: 0 };
+                }
+                graphDataCopy.nodes.push(newNode);
+                addedNodes.push(newNode);
+            }
+        });
+    }
+
+    // 处理新增链接
+    if (newData.links) {
+        newData.links.forEach(link => {
+            // 检查是否已存在相同链接
+            const exists = graphDataCopy.links.some(l => 
+                l.source === link.source && l.target === link.target && l.name === link.name
+            );
+            if (!exists) {
+                // 初始状态设置为不可见（用于生长动画）
+                link.lineStyle = { opacity: 0, width: 2 };
+                graphDataCopy.links.push(link);
+                addedLinks.push(link);
+            }
+        });
+    }
+
+    // 关键改进：使用增量更新而非全量替换
+    myChart.setOption({
+        series: [{
+            data: graphDataCopy.nodes,
+            links: graphDataCopy.links
+        }]
+    });
+
+    // 触发生长动画（使用延迟确保数据已更新）
+    if (addedNodes.length > 0 || addedLinks.length > 0) {
+        setTimeout(() => {
+            // 节点淡入动画
+            addedNodes.forEach(node => {
+                myChart.setOption({
+                    series: [{
+                        data: graphDataCopy.nodes.map(n => {
+                            if (n.id === node.id) {
+                                return {
+                                    id: n.id,
+                                    itemStyle: { opacity: 1 },
+                                    label: { opacity: 1 },
+                                    // 节点出现动画
+                                    emphasis: { scale: true }
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean)
+                    }]
+                });
+            });
+
+            // 链接生长动画
+            addedLinks.forEach(link => {
+                myChart.setOption({
+                    series: [{
+                        links: graphDataCopy.links.map(l => {
+                            if (l.source === link.source && l.target === link.target) {
+                                return {
+                                    source: l.source,
+                                    target: l.target,
+                                    lineStyle: { 
+                                        opacity: 1, 
+                                        width: 2,
+                                        // 线条动画效果
+                                        type: 'dashed',
+                                        dashOffset: 10,
+                                        animation: true,
+                                        animationDuration: 2000,
+                                        animationEasing: 'cubicOut'
+                                    }
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean)
+                    }]
+                });
+            });
+        }, 100);
+    }
+
+    updateStatus(`✅ 副本已更新 | 当前节点数：${graphDataCopy.nodes.length}`);
+}
+
+// 同时优化 initGraphWithCopy 中的动画配置
+function initGraphWithCopy() {
+    const chartDom = document.getElementById('graph-container');
+    myChart = echarts.init(chartDom);
+    
+    const option = {
+        // ... 其他配置保持不变 ...
+        animationDuration: 1500,      // 初始动画时长
+        animationEasing: 'elasticOut', // 初始动画效果（弹性效果更自然）
+        animationDurationUpdate: 2000, // 更新动画时长
+        animationEasingUpdate: 'cubicOut', // 更新动画缓动效果
+        series: [{
+            // ... 其他配置保持不变 ...
+            force: { 
+                repulsion: 200, 
+                edgeLength: 100, 
+                gravity: 0.05,
+                layoutAnimation: true  // 启用布局动画
+            },
+            // 新增线条动画配置
+            lineStyle: { 
+                color: 'source', 
+                curveness: 0.1, 
+                width: 2,
+                // 线条动画
+                animation: true,
+                animationDuration: 2000,
+                animationEasing: 'quadraticOut'
+            }
+        }]
+    };
+    
+    myChart.setOption(option);
+    // ... 其他代码保持不变 ...
+}

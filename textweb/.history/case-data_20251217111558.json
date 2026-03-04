@@ -1,0 +1,10 @@
+{
+  "categories": [
+    {"name": "人物"},
+    {"name": "事件"}
+  ],
+  "nodes": [
+    {"id": 0, "name": "雷切特", "symbolSize": 25, "category": 0,"symbol":}
+  ],
+  "links": []
+}

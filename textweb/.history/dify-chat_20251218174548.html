@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>东方快车探案 - AI对话与关系图</title>
+    <script type="text/javascript" src="https://echarts.apache.org/zh/js/vendors/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+        <style>
+       /* 定义本地字体 */
+@font-face {
+    font-family: 'MyPingFang';
+    src: url('./YanShiYouRanXiaoKai-2.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'MyPingFang', sans-serif !important;
+}
+
+body {
+    font-family: "Microsoft YaHei", sans-serif;
+    height: 100vh;
+    padding: 0; /* 移除默认内边距 */
+    display: flex;
+    flex-direction: column;
+    background-image: url('black.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+/* 标题样式 - 白色描边灰色底小长条 */
+.header {
+    margin: 10px auto; /* 居中显示 */
+    padding: 8px 20px; /* 小长条尺寸 */
+    background: rgba(50, 50, 50, 0.9); /* 灰色底 */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+    border-radius: 4px; /* 轻微圆角 */
+    width: auto; /* 自适应宽度 */
+    box-shadow: none; /* 移除阴影 */
+    flex-shrink: 0;
+}
+
+.header h2 {
+    font-size: 20px; /* 缩小字体 */
+    margin: 0; /* 移除margin */
+    color: rgba(255, 255, 255, 0.9); /* 白色文字 */
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.main-content {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+    overflow: hidden;
+    margin: 0; /* 移除外边距 */
+    border-radius: 0; /* 移除圆角 */
+    box-shadow: none; /* 移除阴影 */
+}
+
+/* 图形区域 - 黑色半透明背景 */
+.graph-section {
+    flex: 5;
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+    min-height: 300px;
+    position: relative;
+    background: rgba(0, 0, 0, 0.7); /* 黑色半透明 */
+    backdrop-filter: blur(5px);
+    border-right: none; /* 移除右侧边框 */
+}
+
+#graph-container {
+    width: 100%;
+    height: 100%;
+}
+
+.chat-section {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 250px;
+}
+
+/* 聊天区域 - 黑色半透明背景 */
+.chat-box {
+    flex: 2;
+    border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+    padding: 20px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.7); /* 黑色半透明 */
+    backdrop-filter: blur(5px);
+}
+
+.message {
+    margin: 12px 0;
+    padding: 14px 18px;
+    border-radius: 10px;
+    line-height: 1.6;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease;
+    word-wrap: break-word;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 用户消息样式调整 */
+.user-msg {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.6), rgba(25, 118, 210, 0.6));
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+    backdrop-filter: blur(2px);
+}
+
+/* AI消息样式调整 */
+.ai-msg {
+    background: linear-gradient(135deg, rgba(232, 245, 233, 0.6), rgba(200, 230, 201, 0.6));
+    color: #1b5e20;
+    border: 1px solid rgba(165, 214, 167, 0.7);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+    backdrop-filter: blur(2px);
+}
+
+.loading {
+    display: inline-flex;
+    align-items: center;
+    color: #ddd; /* 浅色文字适应黑色背景 */
+    font-style: italic;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background: #2196f3;
+    border-radius: 50%;
+    margin: 0 3px;
+    animation: bounce 1.4s infinite;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+}
+
+/* 输入区域 - 黑色半透明背景 */
+.input-area {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.8); /* 黑色半透明 */
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* 浅色边框 */
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+    backdrop-filter: blur(5px);
+}
+
+input {
+    flex: 1;
+    padding: 14px 18px;
+    border: 2px solid rgba(224, 224, 224, 0.3); /* 半透明边框 */
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.1); /* 透明输入框 */
+    color: white; /* 白色文字 */
+}
+
+input::placeholder {
+    color: rgba(255, 255, 255, 0.5); /* 浅色占位符 */
+}
+
+input:focus {
+    outline: none;
+    border-color: rgba(33, 150, 243, 0.8);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+button {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    min-width: 100px;
+    backdrop-filter: blur(2px);
+}
+
+button:hover {
+    background: linear-gradient(135deg, rgba(25, 118, 210, 0.9), rgba(21, 101, 192, 0.9));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    background: rgba(189, 189, 189, 0.5);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 状态条 - 黑色半透明背景 */
+.status {
+    padding: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8); /* 浅色文字 */
+    background: rgba(0, 0, 0, 0.8); /* 黑色半透明 */
+    border-top: 1px solid rgba(255, 255, 255, 0.1); /* 浅色边框 */
+    flex-shrink: 0;
+    margin: 0; /* 移除外边距 */
+    border-radius: 0; /* 移除圆角 */
+    backdrop-filter: blur(5px);
+}
+
+/* 图例样式调整 */
+.graph-legend {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.7); /* 黑色半透明背景 */
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    backdrop-filter: blur(5px);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8); /* 浅色文字 */
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* 响应式调整 */
+@media (max-height: 800px) {
+    .graph-section { flex: 2; }
+    .chat-section { flex: 1; }
+}
+
+@media (max-height: 600px) {
+    .graph-section { min-height: 200px; }
+    .chat-section { min-height: 200px; }
+    .header { padding: 15px; }
+}
+
+@media (max-width: 1200px) {
+    .main-content {
+        flex-direction: column;
+    }
+    .graph-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* 浅色边框 */
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2> 东方快车探案 - AI对话与关系图</h2>
+    </div>
+    
+    <div class="main-content">
+        <div class="graph-section">
+            <div id="graph-container"></div>
+            <div class="graph-legend">
+                <div class="legend-item">
+                    
+                </div>
+                <div class="legend-item">
+                    
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-section">
+            <div id="chat-box" class="chat-box">
+                <div class="message ai-msg">
+                    亲爱的探员，感谢你不辞辛苦来到这里，你可以对目前发生的情况展开提问，一次只问1-2个问题更容易得到准确答案
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="向波洛侦探提问（例如：雷切特是怎么死的？）" 
+                    autocomplete="off"
+                >
+                <button id="send-btn">发送</button>
+                <button id="download-btn">保存当前副本</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="status" class="status">
+        就绪 - 等待加载原始JSON文件
+    </div>
+</body>
+
+    <script>
+        const API_KEY = 'app-Yvdf9uBlW6VQChriK838JPcA';
+        const API_URL = 'https://api.dify.ai/v1/chat-messages';
+        const ORIGINAL_JSON_PATH = './case-data.json';
+        
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const status = document.getElementById('status');
+        
+        let myChart = null;
+        let originalGraphData = {};
+        let graphDataCopy = {};
+        let nodeIdCounter = 0;
+        let nodePositionCache = {};
+        
+        // 预定义的颜色库（用于人物节点）
+        const PERSON_COLORS = [
+            '#5470c6', '#fac858', '#ee6666', '#73c0de',
+            '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#60acfc',
+            '#ff7c7c', '#5ab1ef', '#b6a2de', '#d87a80', '#8d98b3',
+            '#e5cf0d', '#97b552', '#95706d', '#dc69aa', '#07a2a4'
+        ];
+        
+        // 人物颜色映射表
+        let personColorMap = new Map();
+        let nextColorIndex = 0;
+
+        // 为人物分配颜色
+        function assignPersonColor(personName) {
+            if (!personColorMap.has(personName)) {
+                const color = PERSON_COLORS[nextColorIndex % PERSON_COLORS.length];
+                personColorMap.set(personName, color);
+                nextColorIndex++;
+            }
+            return personColorMap.get(personName);
+        }
+
+        // 获取连线颜色
+        function getLinkColor(sourceName, targetName, graphData) {
+            const sourceNode = graphData.nodes.find(n => n.id === sourceName || n.name === sourceName);
+            const targetNode = graphData.nodes.find(n => n.id === targetName || n.name === targetName);
+            
+            // 如果是人物-事件连线，使用人物颜色
+            if (sourceNode && targetNode) {
+                if (sourceNode.category === 0 && targetNode.category === 1) {
+                    return assignPersonColor(sourceNode.name);
+                }
+                if (sourceNode.category === 1 && targetNode.category === 0) {
+                    return assignPersonColor(targetNode.name);
+                }
+            }
+            
+            // 人物-人物或事件-事件连线使用默认灰色
+            return '#aaa';
+        }
+
+        // 步骤1：读取原始JSON，创建内存副本
+        function loadOriginalAndCreateCopy() {
+            return new Promise((resolve, reject) => {
+                updateStatus('正在读取原始文件 case-data.json...');
+                $.getJSON(ORIGINAL_JSON_PATH, function (originalData) {
+                    originalGraphData = JSON.parse(JSON.stringify(originalData));
+                    graphDataCopy = JSON.parse(JSON.stringify(originalData));
+
+                    if (graphDataCopy.nodes && graphDataCopy.nodes.length > 0) {
+                        graphDataCopy.nodes.forEach(node => {
+                            if (node.category === 0) {
+                                node.symbol = 'circle';
+                                node.symbolSize = node.symbolSize || 25;
+                                // 为已有的人物分配颜色
+                                if (node.name) {
+                                    node.itemStyle = { color: assignPersonColor(node.name) };
+                                }
+                            } else if (node.category === 1) {
+                                node.symbol = 'diamond';
+                                node.symbolSize = node.symbolSize || 18;
+                            }
+                            
+                            // 确保每个节点都有desc属性
+                            if (!node.desc) {
+                                node.desc = '暂无描述';
+                            }
+                        });
+                        
+                        // 更新连线颜色
+                        graphDataCopy.links.forEach(link => {
+                            link.lineStyle = { color: getLinkColor(link.source, link.target, graphDataCopy) };
+                        });
+                        
+                        nodeIdCounter = Math.max(...graphDataCopy.nodes.map(n => n.id)) + 1;
+                    }
+
+                    updateStatus(`✅ 已创建原始文件副本 | 初始节点数：${graphDataCopy.nodes.length}`);
+                    resolve(graphDataCopy);
+                }).fail(function (err) {
+                    console.error('原始JSON读取失败:', err);
+                    updateStatus('❌ 原始文件读取失败，请检查case-data.json是否存在');
+                    reject(err);
+                });
+            });
+        }
+
+        // 保存节点位置
+        function saveNodePositions() {
+            if (!myChart) return;
+            const series = myChart.getOption().series[0];
+            if (series && series.data) {
+                series.data.forEach(node => {
+                    if (node.x !== undefined && node.y !== undefined) {
+                        nodePositionCache[node.id] = { x: node.x, y: node.y };
+                    }
+                });
+            }
+        }
+
+        // 恢复节点位置
+        function restoreNodePositions(nodes) {
+            nodes.forEach(node => {
+                if (nodePositionCache[node.id]) {
+                    node.x = nodePositionCache[node.id].x;
+                    node.y = nodePositionCache[node.id].y;
+                }
+            });
+        }
+
+        // 步骤2：初始化图表（基于内存副本）
+        function initGraphWithCopy() {
+            const chartDom = document.getElementById('graph-container');
+            myChart = echarts.init(chartDom);
+            
+            const option = {
+                title: {
+                    text: '思维殿堂-案件关系图',
+                    left: 'center',
+                    top: 10,
+                    
+                    textStyle: { fontSize: 18, fontWeight: 'bold', color: '#333' }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
+                    padding: 0,
+                    formatter: function(params) {
+                        let nodeColor = params.color || '#5470c6';
+                        let desc = params.data.desc || '暂无描述';
+                        
+                        if (params.dataType === 'node') {
+                            return `
+                                <div style="
+                                    background: ${nodeColor};
+                                    border: 2px solid #fff;
+                                    border-radius: 8px; 
+                                    padding: 10px 15px; 
+                                    color: #fff; 
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                ">
+                                    <b style="font-size: 14px;">${params.data.name}</b><br/>
+                                    <span style="font-size: 12px; opacity: 0.9;">${desc}</span>
+                                </div>
+                            `;
+                        } else if (params.dataType === 'edge') {
+                            const source = graphDataCopy.nodes.find(n => n.id === params.data.source);
+                            const target = graphDataCopy.nodes.find(n => n.id === params.data.target);
+                            return `
+                                <div style="
+                                    background: #666; 
+                                    border: 2px solid #fff; 
+                                    border-radius: 8px; 
+                                    padding: 8px 12px; 
+                                    color: #fff;
+                                ">
+                                    <b>${source?.name} → ${target?.name}</b><br/>
+                                    <span style="font-size: 11px;">${params.data.relation || '关联关系'}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                },
+                animationDurationUpdate: 1000,
+                animationEasingUpdate: 'quinticInOut',
+                legend: { 
+                    show: true, 
+                    top: 40, 
+                    data: graphDataCopy.categories.map(cat => cat.name) 
+                },
+                series: [{
+                    name: '案件关系',
+                    type: 'graph',
+                    layout: 'force',
+                    data: graphDataCopy.nodes,
+                    links: graphDataCopy.links,
+                    categories: graphDataCopy.categories,
+                    roam: true,
+                    draggable: true,
+                    label: { 
+                        fontFamily: 'MyPingFang, sans-serif',
+                        show: true, 
+                        position: 'inside', 
+                        align: 'center', 
+                        formatter: '{b}', 
+                        fontSize: 12,
+                        
+                        fontWeight: 'bold'
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        shadowBlur: 9,
+                        shadowOffsetX: 1.5,
+                        shadowOffsetY: 3,
+                        shadowColor: '#555'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            borderColor: '#fff',
+                            borderWidth: 3
+                        },
+                        focus: 'adjacency', 
+                        lineStyle: { width: 4 }
+                    },
+                    force: {
+                        enable: false,
+                        layoutAnimation: false,
+                        repulsion: 200,
+                        edgeLength: 100,
+                        gravity: 0.1
+                    },
+                    lineStyle: {
+                        curveness: 0.1,
+                        width: 1.5,
+                        opacity: 0.8
+                    }
+                }]
+            };
+            
+            myChart.setOption(option);
+            myChart.setOption({
+                series: [{ zoom: 2, center: [myChart.getWidth() / 2, myChart.getHeight() / 2] }]
+            });
+            
+            myChart.on('forceEnd', function() {
+                saveNodePositions();
+            });
+            
+            window.addEventListener('resize', () => myChart.resize());
+        }
+
+        function SplitAIResponse(responseText) {
+            const parts = responseText.split('===DATA===');
+            return parts;
+        }
+
+        // 步骤3：从AI回复分割数据，修改内存副本
+        function parseAndUpdateCopy(jsonStr) {
+            let newData;
+            try {
+                newData = JSON.parse(jsonStr);
+            } catch (e) {
+                updateStatus('❌ AI回复中的JSON格式错误');
+                console.error('JSON解析失败:', e);
+                return;
+            }
+            
+            saveNodePositions();
+            
+            // 处理新节点
+            if (newData.nodes) {
+                newData.nodes.forEach(newNode => {
+                    const exists = graphDataCopy.nodes.some(n => n.name === newNode.name);
+                    if (!exists) {
+                        newNode.id = nodeIdCounter++;
+                        
+                        if (newNode.category === 0) {
+                            newNode.symbol = 'circle';
+                            newNode.symbolSize = 25;
+                            // 为人物节点分配颜色
+                            if (newNode.name) {
+                                newNode.itemStyle = { color: assignPersonColor(newNode.name) };
+                            }
+                        } else if (newNode.category === 1) {
+                            newNode.symbol = 'diamond';
+                            newNode.symbolSize = 18;
+                        }
+                        
+                        // 确保有desc属性
+                        if (!newNode.desc) {
+                            newNode.desc = newNode.name + '的相关信息';
+                        }
+                        
+                        graphDataCopy.nodes.push(newNode);
+                    }
+                });
+            }
+            
+            // 处理新链接
+            if (newData.links) {
+                newData.links.forEach(newLink => {
+                    // 为连线设置颜色
+                    newLink.lineStyle = { 
+                        color: getLinkColor(newLink.source, newLink.target, graphDataCopy) 
+                    };
+                    graphDataCopy.links.push(newLink);
+                });
+            }
+            
+            // 恢复节点位置
+            restoreNodePositions(graphDataCopy.nodes);
+            
+            // 更新图表
+            myChart.setOption({
+                animation: false,
+                animationDurationUpdate: 0,
+                series: [{ 
+                    data: graphDataCopy.nodes, 
+                    links: graphDataCopy.links,
+                    force: {
+                        layoutAnimation: false
+                    }
+                }]
+            });
+            
+            updateStatus(`✅ 副本已更新 | 当前节点数：${graphDataCopy.nodes.length}`);
+        }
+
+        // 步骤4：导出内存副本为新的JSON文件
+        function downloadCopyAsNewFile() {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `case-data-copy-${timestamp}.json`;
+            const copyJsonStr = JSON.stringify(graphDataCopy, null, 2);
+            const blob = new Blob([copyJsonStr], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            updateStatus(`✅ 副本已导出为：${fileName}`);
+        }
+
+        function addMessage(text, type = 'ai') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type === 'user' ? 'user-msg' : 'ai-msg'}`;
+            if (text === 'thinking') {
+                msgDiv.innerHTML = `<div class="loading">波洛思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+            } else {
+                msgDiv.textContent = text;
+            }
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        async function callDifyAPI(userMessage) {
+            try {
+                addMessage('thinking', 'ai');
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        query: userMessage,
+                        response_mode: "blocking",
+                        conversation_id: "",
+                        user: "detective_game_" + Date.now(),
+                        inputs: {}
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                
+                if (data.answer) {
+                    const parts = SplitAIResponse(data.answer);
+                    addMessage(parts[0].trim(), 'ai');
+                    parseAndUpdateCopy(parts[1].trim());
+                    return data.answer;
+                } else {
+                    throw new Error('API返回无答案');
+                }
+            } catch (error) {
+                console.error('API错误:', error);
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+                updateStatus(`❌ API错误: ${error.message}`);
+                return null;
+            }
+        }
+
+        async function handleSendMessage() {
+            const message = userInput.value.trim();
+            if (!message) { alert('请输入问题'); return; }
+            
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            addMessage(message, 'user');
+            userInput.value = '';
+            
+            updateStatus('正在向波洛侦探提问...');
+            await callDifyAPI(message);
+            
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        downloadBtn.addEventListener('click', downloadCopyAsNewFile);
+
+        window.onload = async () => {
+            try {
+                await loadOriginalAndCreateCopy();
+                initGraphWithCopy();
+                userInput.focus();
+                updateStatus('点击「保存当前副本」导出关系图');
+            } catch (err) {
+                console.error('初始化失败:', err);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>名侦探的思维殿堂 </title>
+    <script type="text/javascript" src="https://echarts.apache.org/zh/js/vendors/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+        <style>
+        /* 定义本地字体 */
+        @font-face {
+            font-family: 'MyPingFang';
+            src: url('./YanShiYouRanXiaoKai-2.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'MyPingFang', sans-serif !important;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background-image: url('black.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+                /* 修改标题容器样式 - 小长条设计 */
+        .header {
+            margin: 10px auto; /* 居中显示 */
+            padding: 8px 20px; /* 小长条尺寸 */
+            background: rgba(237, 225, 195, 0.9); /* 灰色底 */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+            border-radius: 4px; /* 轻微圆角 */
+            width: auto; /* 自适应宽度 */
+            box-shadow: none; /* 移除阴影 */
+        }
+
+        /* 修改标题文字样式 */
+        .header h2 {
+            font-size: 20px; /* 缩小字体 */
+            margin: 0; /* 移除margin */
+            color: rgba(255, 255, 255, 0.9); /* 白色文字 */
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            overflow: hidden;
+            margin: 0 20px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .graph-section {
+            flex: 5;
+            min-height: 300px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.288);
+            backdrop-filter: blur(5px);
+            border-right: 2px solid rgba(224, 224, 224, 0.7);
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .chat-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            min-height: 250px;
+        }
+        
+        .chat-box {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.288);
+            backdrop-filter: blur(5px);
+        }
+        
+        .message {
+            margin: 12px 0;
+            padding: 14px 18px;
+            border-radius: 10px;
+            line-height: 1.6;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-msg {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+            backdrop-filter: blur(2px);
+        }
+        
+        .ai-msg {
+            background: linear-gradient(135deg, rgba(232, 245, 233, 0.9), rgba(200, 230, 201, 0.9));
+            color: #1b5e20;
+            border: 1px solid rgba(165, 214, 167, 0.7);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+            backdrop-filter: blur(2px);
+        }
+        
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #2196f3;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.4s infinite;
+        }
+        
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+        
+        .input-area {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.288);
+            border-top: 1px solid rgba(224, 224, 224, 0.7);
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+        /* 文件上传按钮样式 */
+        #upload-btn {
+            padding: 14px;
+            background: #ffffff; /* 紫色改为纯白色 */
+            color: #1677ff; /* +号字体改为蓝色，与整体风格呼应 */
+            border: 1px solid #e0e0e0; /* 增加浅边框提升辨识度 */
+            border-radius: 8px;
+            font-size: 24px; /* 放大字体，打造大+号 */
+            font-weight: bold; /* 加粗+号，更醒目 */
+            cursor: pointer;
+            min-width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #upload-btn:hover {
+            background: #f5f5f5; /* 悬浮时改为浅灰色，替代原有紫色渐变 */
+            color: #4096ff; /* 悬浮时+号加深蓝色 */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1); /* 悬浮阴影改为蓝色系，统一风格 */
+        }
+
+        #upload-btn:disabled {
+            background: rgba(245, 245, 245, 0.9); /* 禁用时浅灰背景 */
+            color: #999; /* 禁用时+号灰色 */
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+/* 文件信息显示区域 */
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(156, 39, 176, 0.1);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: #7b1fa2;
+}
+
+.file-info .remove-file {
+    background: none;
+    border: none;
+    color: #d32f2f;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+}
+        input {
+            flex: 1;
+            width: 280px;
+            height: 60px;
+            padding: 14px 20px;
+            border: 2px solid rgba(224, 224, 224, 0.8);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: rgba(33, 150, 243, 0.8);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        button {
+
+            padding: 14px 14px;
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 80px;
+            
+            backdrop-filter: blur(2px);
+        }
+        
+        button:hover {
+            background-color: #4096ff;
+        transform: translateY(-10px) scale(1.1);
+        box-shadow: 0 10px 20px rgba(22, 119, 255, 0.3);
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹性曲线 */
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: rgba(189, 189, 189, 0.9);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.288);
+            border-top: 1px solid rgba(224, 224, 224, 0.7);
+            flex-shrink: 0;
+            margin: 0 20px;
+            border-radius: 0 0 15px 15px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .graph-legend {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        @media (max-height: 800px) {
+            .graph-section { flex: 2; }
+            .chat-section { flex: 1; }
+        }
+        
+        @media (max-height: 600px) {
+            .graph-section { min-height: 200px; }
+            .chat-section { min-height: 200px; }
+            .header { padding: 15px; }
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .graph-section {
+                border-right: none;
+                border-bottom: 2px solid rgba(224, 224, 224, 0.7);
+            }
+        }
+        .select-box {
+      width: 88px; /* 按需调整窄宽度，可改成100px/150px */
+      background-color: #1677ff; /* 替换成你其他蓝色按钮的颜色 */
+      color: #fff; /* 文字白色，保证能看清 */
+      border-radius: 8px; /* 圆角，和其他按钮保持一致 */
+      border: none; /* 清除默认边框 */
+      padding: 5px 5px; /* 内边距，适配按钮样式 */
+      appearance: none; /* 清除原生下拉框样式 */
+      -webkit-appearance: none;
+      /* 自定义下拉箭头（可选，不想要就删掉下面4行） */
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+    .select-box:hover {
+        background-color: #4096ff;
+        transform: translateY(-10px) scale(1.1);
+        box-shadow: 0 10px 20px rgba(22, 119, 255, 0.3);
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹性曲线 */
+    }
+    /* 推理真相按钮样式 */
+.inference-btn {
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+    transition: all 0.3s ease;
+}
+
+.inference-btn:hover {
+    background: linear-gradient(135deg, #ff5252, #e53935);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+/* 悬浮窗口样式 */
+.inference-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.inference-content {
+    width: 80%;
+    max-width: 800px;
+    height: 70%;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inference-header {
+    padding: 20px;
+    background: linear-gradient(135deg, #1a237e, #283593);
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.inference-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.inference-chat-box {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.inference-input-area {
+    padding: 20px;
+    background: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.inference-input-area input {
+    flex: 1;
+    padding: 14px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+}
+
+.inference-input-area input:focus {
+    outline: none;
+    border-color: #ff6b6b;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+}
+
+.inference-input-area button {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    min-width: 120px;
+    transition: all 0.3s ease;
+}
+
+.inference-input-area button:hover {
+    background: linear-gradient(135deg, #ff5252, #e53935);
+    transform: translateY(-2px);
+}
+/* 右上角按钮容器 */
+.graph-controls {
+    position: absolute;
+    top: 50px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+}
+
+/* 控制按钮样式 */
+.control-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    min-width: 120px;
+    text-align: center;
+}
+
+#inference-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+}
+
+#inference-btn:hover {
+    background: linear-gradient(135deg, #ff5252, #e53935);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+#help-btn {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+    color: white;
+}
+
+#help-btn:hover {
+    background: linear-gradient(135deg, #43A047, #2E7D32);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* 删除原来的推理按钮样式（因为现在用control-btn） */
+.inference-btn {
+    display: none;
+}
+
+/* 使用手册内容样式 */
+.manual-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.manual-content h4 {
+    margin-bottom: 20px;
+    color: #1a237e;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+}
+
+.manual-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(33, 150, 243, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #2196f3;
+}
+
+.manual-section h5 {
+    margin-top: 0;
+    color: #1976d2;
+    margin-bottom: 8px;
+}
+
+.manual-section p {
+    margin: 5px 0;
+    color: #555;
+    line-height: 1.5;
+}
+
+.manual-section p strong {
+    color: #2196f3;
+}
+
+.manual-tips {
+    margin-top: 25px;
+    padding: 15px;
+    background: rgba(255, 193, 7, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #ff9800;
+}
+
+.manual-tips h5 {
+    color: #f57c00;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.manual-tips ul {
+    margin: 0;
+    padding-left: 20px;
+    color: #666;
+}
+
+.manual-tips li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+/* 推理窗口中的加载样式 */
+.inference-loading {
+    display: inline-flex;
+    align-items: center;
+    color: #666;
+    font-style: italic;
+}
+
+.inference-dot {
+    width: 6px;
+    height: 6px;
+    background: #ff6b6b;
+    border-radius: 50%;
+    margin: 0 3px;
+    animation: bounce 1.4s infinite;
+}
+
+.inference-dot:nth-child(2) { animation-delay: 0.2s; }
+.inference-dot:nth-child(3) { animation-delay: 0.4s; }
+    /* 聚焦状态样式（可选，保持按钮一致性） */
+    .select-box:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+    }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🚂 东方快车探案 - AI对话与关系图</h2>
+    </div>
+    
+    <div class="main-content">
+        <div class="graph-section">
+        <div id="graph-container"></div>
+         <div class="graph-controls">
+        <button id="inference-btn" class="control-btn">🔍 推理真相</button>
+        <button id="help-btn" class="control-btn">📖 使用手册</button>
+        </div>
+        <div class="graph-legend">
+            <!-- ... 原有的图例内容 ... -->
+        </div>
+    </div>
+        
+        <div class="chat-section">
+            <div id="chat-box" class="chat-box">
+                <div class="message ai-msg">
+                    亲爱的探员，感谢你不辞辛苦来到这里，想必你就是福尔摩斯的助手了。
+                    东山警察局发生了一起爆炸案，损伤惨重，白德培是目前第一个目击者，你可以与他沟通获得线索，此外，还有警局方面有阿仁、刘建明、周小燕、老胡、小汪在场，还有几个江湖混混也涉及此时，分别是小龙哥、瘸子、耗子、八爷，需要你的帮助协助调查真相。点击左下角选框可以更换你要询问的人，请通过询问相关人员获取线索，揭开事件的谜团吧！如果你觉得事情的脉络大致通透，可以在推理真相处，与福尔摩斯分析（本剧本摘自《疑案追声》，希望大家多多支持原作✌）
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <!-- 新增：下拉框（提问对象选择） -->
+                <select id="question-target" class="select-box">
+                    <option value="白德培">白德培</option>
+                    <option value="阿仁">阿仁</option>
+                    <option value="关岳鹏">关岳鹏</option>
+                    <option value="刘建明">刘建明</option>
+                    <option value="周小燕">周小燕</option>
+                    <option value="老胡">老胡</option>
+                    <option value="小汪">小汪</option>
+                    <option value="八爷">八爷（化名）</option>
+                    <option value="小龙哥">小龙哥</option>
+                    <option value="耗子">耗子（化名）</option>
+                    <option value="其他人">其他人（自己补充询问对象）</option>
+                </select>
+                
+
+            </select>
+            
+            <input 
+                type="text" 
+                id="user-input" 
+                placeholder="选择询问的对象，获取线索" 
+                autocomplete="off"
+            >
+            
+            <!-- 新增：文件上传按钮 -->
+            <input 
+                type="file" 
+                id="file-upload" 
+                accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx" 
+                style="display: none"
+            >
+                <button type="button" id="upload-btn" title="上传文件">＋</button>
+                <button id="send-btn">发送</button>
+                <button id="download-btn">保存当前副本</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="status" class="status">
+        就绪 - 等待加载原始JSON文件
+    </div>
+    <div id="inference-modal" class="inference-modal">
+    <div class="inference-content">
+        <div class="inference-header">
+            <h3>🔍 推理真相模式</h3>
+            <button class="close-btn">&times;</button>
+        </div>
+        <div class="inference-chat-box" id="inference-chat-box">
+            <div class="message ai-msg">
+                说出你的推理吧，探员。告诉我你认为发生了什么，我会评估你的推理。
+            </div>
+        </div>
+        <div class="inference-input-area">
+            <input 
+                type="text" 
+                id="inference-input" 
+                placeholder="输入你的完整推理（例如：我认为凶手是...，因为...）" 
+                autocomplete="off"
+            >
+            <button id="inference-send-btn">提交推理</button>
+        </div>
+    </div>
+</div>
+<!-- 使用手册弹窗 -->
+<div id="help-modal" class="inference-modal">
+    <div class="inference-content">
+        <div class="inference-header">
+            <h3>📖 使用手册</h3>
+            <button class="close-btn help-close-btn">&times;</button>
+        </div>
+        <div class="manual-content">
+            <h4>📝 如何玩这个推理游戏</h4>
+            <div class="manual-section">
+                <h5>1. 调查嫌疑人</h5>
+                <p>使用下拉菜单选择要询问的人物，在输入框中输入你的问题。</p>
+                <p><strong>示例：</strong> 选择"白德培"，输入"你案发前在哪里？"</p>
+            </div>
+            <div class="manual-section">
+                <h5>2. 观察关系图</h5>
+                <p>每次询问后，左侧的关系图会自动更新，显示人物与事件之间的关系。</p>
+                <p><strong>提示：</strong> 鼠标悬停在节点上可以查看详细信息。</p>
+            </div>
+            <div class="manual-section">
+                <h5>3. 提出推理</h5>
+                <p>当你有足够线索时，点击"🔍 推理真相"按钮，输入你的完整推理。</p>
+                <p><strong>格式：</strong> 我认为凶手是...，因为...</p>
+            </div>
+            <div class="manual-section">
+                <h5>4. 保存进度</h5>
+                <p>随时可以点击"保存当前副本"按钮，保存你的调查进度。</p>
+            </div>
+            <div class="manual-tips">
+                <h5>💡 调查技巧</h5>
+                <ul>
+                    <li>一次只问1-2个问题，更容易获得准确答案</li>
+                    <li>注意人物的口吻和可能隐瞒的信息</li>
+                    <li>关注时间线和物证关系</li>
+                    <li>关系图中的颜色表示人物与事件的关联</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+    <script>
+        const CASE_DATA = {
+        "categories": [
+            {"name": "人物"},
+            {"name": "事件"}
+        ],
+        "nodes": [
+            {"id": 0, "name": "白德培", "symbolSize": 25, "category": 0}
+        ],
+        "links": []
+        };
+        const API_KEY = 'app-Yvdf9uBlW6VQChriK838JPcA';
+        const API_URL = 'https://api.dify.ai/v1/chat-messages';
+        const ORIGINAL_JSON_PATH = './case-data.json';
+        
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+
+        const questionTarget = document.getElementById('question-target');
+        const sendBtn = document.getElementById('send-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const status = document.getElementById('status');
+        
+        let myChart = null;
+        let originalGraphData = {};
+        let graphDataCopy = {};
+        let nodeIdCounter = 0;
+        let nodePositionCache = {};
+        
+        
+        // 预定义的颜色库（用于人物节点）
+        const PERSON_COLORS = [
+            '#5470c6', '#fac858', '#ee6666', '#73c0de',
+            '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#60acfc',
+            '#ff7c7c', '#5ab1ef', '#b6a2de', '#d87a80', '#8d98b3',
+            '#e5cf0d', '#97b552', '#95706d', '#dc69aa', '#07a2a4'
+        ];
+        
+        // 人物颜色映射表
+        let personColorMap = new Map();
+        let nextColorIndex = 0;
+
+        // 为人物分配颜色
+        function assignPersonColor(personName) {
+            if (!personColorMap.has(personName)) {
+                const color = PERSON_COLORS[nextColorIndex % PERSON_COLORS.length];
+                personColorMap.set(personName, color);
+                nextColorIndex++;
+            }
+            return personColorMap.get(personName);
+        }
+
+        // 获取连线颜色
+        function getLinkColor(sourceName, targetName, graphData) {
+            const sourceNode = graphData.nodes.find(n => n.id === sourceName || n.name === sourceName);
+            const targetNode = graphData.nodes.find(n => n.id === targetName || n.name === targetName);
+            
+            // 如果是人物-事件连线，使用人物颜色
+            if (sourceNode && targetNode) {
+                if (sourceNode.category === 0 && targetNode.category === 1) {
+                    return assignPersonColor(sourceNode.name);
+                }
+                if (sourceNode.category === 1 && targetNode.category === 0) {
+                    return assignPersonColor(targetNode.name);
+                }
+            }
+            
+            // 人物-人物或事件-事件连线使用默认灰色
+            return '#aaa';
+        }
+
+       // 步骤1：读取内嵌数据，创建内存副本
+function loadOriginalAndCreateCopy() {
+    return new Promise((resolve, reject) => {
+        try {
+            updateStatus('正在读取案件数据...');
+            console.log('开始加载内嵌数据...');
+            
+           // 修改这里：直接检查 CASE_DATA
+            if (typeof CASE_DATA === 'undefined') {
+                throw new Error('案件数据未找到，请检查CASE_DATA变量定义');
+            }
+            
+            // 深拷贝数据
+            originalGraphData = JSON.parse(JSON.stringify(CASE_DATA));
+            graphDataCopy = JSON.parse(JSON.stringify(CASE_DATA));
+            
+            console.log('原始数据加载成功，节点数:', graphDataCopy.nodes.length);
+            
+            // 初始化节点
+            if (graphDataCopy.nodes && graphDataCopy.nodes.length > 0) {
+                graphDataCopy.nodes.forEach(node => {
+                    if (node.category === 0) {
+                        node.symbol = 'circle';
+                        node.symbolSize = node.symbolSize || 25;
+                        // 为人物节点分配颜色
+                        if (node.name) {
+                            node.itemStyle = { color: assignPersonColor(node.name) };
+                        }
+                    } else if (node.category === 1) {
+                        node.symbol = 'diamond';
+                        node.symbolSize = node.symbolSize || 22;
+                    }
+                    
+                    // 确保每个节点都有desc属性
+                    if (!node.desc) {
+                        node.desc = node.name + '的相关信息';
+                    }
+                });
+                
+                // 更新连线颜色（如果有连线）
+                if (graphDataCopy.links && Array.isArray(graphDataCopy.links)) {
+                    graphDataCopy.links.forEach(link => {
+                        link.lineStyle = { 
+                            color: getLinkColor(link.source, link.target, graphDataCopy) 
+                        };
+                    });
+                }
+                
+                // 设置nodeIdCounter
+                const maxId = graphDataCopy.nodes.length > 0 
+                    ? Math.max(...graphDataCopy.nodes.map(n => parseInt(n.id) || 0))
+                    : 0;
+                nodeIdCounter = maxId + 1;
+            }
+            
+            console.log('数据处理完成，nodeIdCounter:', nodeIdCounter);
+            updateStatus(`✅ 案件数据加载完成 | 人物: ${graphDataCopy.nodes.filter(n => n.category === 0).length} 人`);
+            
+            // 确保图表容器存在
+            const chartDom = document.getElementById('graph-container');
+            if (!chartDom) {
+                throw new Error('图表容器 #graph-container 未找到');
+            }
+            
+            // 成功加载，返回数据
+            resolve(graphDataCopy);
+            
+        } catch (error) {
+            console.error('数据加载错误:', error);
+            updateStatus(`❌ 数据加载失败: ${error.message}`);
+            
+            // 显示错误信息
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'message ai-msg';
+            errorMsg.innerHTML = `<div style="color: #d32f2f;">系统初始化失败: ${error.message}</div>`;
+            document.getElementById('chat-box').appendChild(errorMsg);
+            
+            reject(error);
+        }
+    });
+}
+
+        // 保存节点位置
+        function saveNodePositions() {
+            if (!myChart) return;
+            const series = myChart.getOption().series[0];
+            if (series && series.data) {
+                series.data.forEach(node => {
+                    if (node.x !== undefined && node.y !== undefined) {
+                        nodePositionCache[node.id] = { x: node.x, y: node.y };
+                    }
+                });
+            }
+        }
+
+        // 恢复节点位置
+        function restoreNodePositions(nodes) {
+            nodes.forEach(node => {
+                if (nodePositionCache[node.id]) {
+                    node.x = nodePositionCache[node.id].x;
+                    node.y = nodePositionCache[node.id].y;
+                }
+            });
+        }
+
+        // 步骤2：初始化图表（基于内存副本）
+        function initGraphWithCopy() {
+            const chartDom = document.getElementById('graph-container');
+            myChart = echarts.init(chartDom);
+            
+            const option = {
+                title: {
+                text: '思维殿堂-案件关系图',
+                left: 'center',
+                top: 10,
+                textStyle: { 
+                    fontSize: 18, 
+                    fontWeight: 'bold', 
+                    color: '#ffd700'  // 改为金色（可替换为其他颜色，如 #8b0000 深红色）
+                }
+            },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
+                    padding: 0,
+                    formatter: function(params) {
+                        let nodeColor = params.color || '#5470c6';
+                        let desc = params.data.desc || '暂无描述';
+                        
+                        if (params.dataType === 'node') {
+                            return `
+                                <div style="
+                                    background: ${nodeColor};
+                                    border: 2px solid #fff;
+                                    border-radius: 8px; 
+                                    padding: 10px 15px; 
+                                    color: #fff; 
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                ">
+                                    <b style="font-size: 14px;">${params.data.name}</b><br/>
+                                    <span style="font-size: 12px; opacity: 0.9;">${desc}</span>
+                                </div>
+                            `;
+                        } else if (params.dataType === 'edge') {
+                            const source = graphDataCopy.nodes.find(n => n.id === params.data.source);
+                            const target = graphDataCopy.nodes.find(n => n.id === params.data.target);
+                            return `
+                                <div style="
+                                    background: #666; 
+                                    border: 2px solid #fff; 
+                                    border-radius: 8px; 
+                                    padding: 8px 12px; 
+                                    color: #fff;
+                                ">
+                                    <b>${source?.name} → ${target?.name}</b><br/>
+                                    <span style="font-size: 11px;">${params.data.relation || ''}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                },
+                animationDurationUpdate: 1000,
+                animationEasingUpdate: 'quinticInOut',
+                legend: { 
+                show: true, 
+                top: 40, 
+                data: graphDataCopy.categories.map(cat => cat.name),
+                textStyle: {
+                    color: '#fff'  // 添加文本样式设置为白色
+                }
+            },
+                series: [{
+                    name: '案件关系',
+                    type: 'graph',
+                    layout: 'force',
+                    data: graphDataCopy.nodes,
+                    links: graphDataCopy.links,
+                    categories: graphDataCopy.categories,
+                    roam: true,
+                    draggable: true,
+                    label: { 
+                        fontFamily: 'MyPingFang, sans-serif',
+                        show: true, 
+                        position: 'inside', 
+                        align: 'center', 
+                        formatter: '{b}', 
+                        fontSize: 12,
+                        
+                        fontWeight: 'bold'
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        shadowBlur: 9,
+                        shadowOffsetX: 1.5,
+                        shadowOffsetY: 3,
+                        shadowColor: '#555'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            borderColor: '#fff',
+                            borderWidth: 3
+                        },
+                        focus: 'adjacency', 
+                        lineStyle: { width: 4 }
+                    },
+                    force: {
+                        enable: false,
+                        layoutAnimation: false,
+                        repulsion: 200,
+                        edgeLength: 100,
+                        gravity: 0.1
+                    },
+                    lineStyle: {
+                        curveness: 0.1,
+                        width: 1.5,
+                        opacity: 0.8
+                    }
+                }]
+            };
+            
+            myChart.setOption(option);
+            myChart.setOption({
+                series: [{ zoom: 2, center: [myChart.getWidth() / 2, myChart.getHeight() / 2] }]
+            });
+            
+            myChart.on('forceEnd', function() {
+                saveNodePositions();
+            });
+            
+            window.addEventListener('resize', () => myChart.resize());
+        }
+
+        function SplitAIResponse(responseText) {
+            const parts = responseText.split('===DATA===');
+            return parts;
+        }
+
+        // 步骤3：从AI回复分割数据，修改内存副本
+        // 步骤3：从AI回复分割数据，修改内存副本 - 替换版本
+function parseAndUpdateCopy(jsonStr) {
+    let newData;
+    try {
+        newData = JSON.parse(jsonStr);
+    } catch (e) {
+        updateStatus('❌ AI回复中的JSON格式错误');
+        console.error('JSON解析失败:', e);
+        return;
+    }
+    
+    saveNodePositions();
+    
+    console.log('收到新的完整数据，节点数:', newData.nodes?.length || 0);
+    console.log('新数据:', newData);
+    
+    // 重置graphDataCopy为新的完整数据
+    graphDataCopy = JSON.parse(JSON.stringify(newData));
+    
+    // 处理节点
+    if (graphDataCopy.nodes && graphDataCopy.nodes.length > 0) {
+        graphDataCopy.nodes.forEach(node => {
+            if (node.category === 0) {
+                node.symbol = 'circle';
+                node.symbolSize = node.symbolSize || 25;
+                // 为人物节点分配颜色
+                if (node.name) {
+                    node.itemStyle = { color: assignPersonColor(node.name) };
+                }
+            } else if (node.category === 1) {
+                node.symbol = 'diamond';
+                node.symbolSize = node.symbolSize || 22;
+            }
+            
+            // 确保每个节点都有desc属性
+            if (!node.desc) {
+                node.desc = node.name + '的相关信息';
+            }
+        });
+        
+        // 更新连线颜色
+        if (graphDataCopy.links && Array.isArray(graphDataCopy.links)) {
+            graphDataCopy.links.forEach(link => {
+                link.lineStyle = { 
+                    color: getLinkColor(link.source, link.target, graphDataCopy) 
+                };
+            });
+        }
+        
+        // 更新nodeIdCounter为最大ID+1
+        const maxId = graphDataCopy.nodes.length > 0 
+            ? Math.max(...graphDataCopy.nodes.map(n => parseInt(n.id) || 0))
+            : 0;
+        nodeIdCounter = maxId + 1;
+    }
+    
+    console.log('更新后的数据:', graphDataCopy);
+    console.log('新的nodeIdCounter:', nodeIdCounter);
+    
+    // 恢复节点位置（如果有缓存）
+    restoreNodePositions(graphDataCopy.nodes);
+    
+    // 更新图表
+    myChart.setOption({
+        animation: false,
+        animationDurationUpdate: 0,
+        series: [{ 
+            data: graphDataCopy.nodes, 
+            links: graphDataCopy.links,
+            categories: graphDataCopy.categories,
+            force: {
+                layoutAnimation: false
+            }
+        }]
+    });
+    
+    updateStatus(`✅ 关系图已更新 | 当前节点数：${graphDataCopy.nodes.length}`);
+}
+
+        // 步骤4：导出内存副本为新的JSON文件
+        function downloadCopyAsNewFile() {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `case-data-copy-${timestamp}.json`;
+            const copyJsonStr = JSON.stringify(graphDataCopy, null, 2);
+            const blob = new Blob([copyJsonStr], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            updateStatus(`✅ 副本已导出为：${fileName}`);
+        }
+
+        function addMessage(text, type = 'ai') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type === 'user' ? 'user-msg' : 'ai-msg'}`;
+            if (text === 'thinking') {
+                msgDiv.innerHTML = `<div class="loading">对方思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+            } else {
+                msgDiv.textContent = text;
+            }
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        async function callDifyAPI(userMessage) {
+    try {
+        addMessage('thinking', 'ai');
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                query: userMessage,
+                response_mode: "blocking",
+                conversation_id: "",
+                user: "detective_game_" + Date.now(),
+                inputs: {}
+            })
+        });
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        
+        if (data.answer) {
+            // 检查是否是推理模式（包含##推理真相）
+            if (userMessage.includes('##推理真相')) {
+                // 推理模式：直接显示完整回答
+                addMessage(data.answer.trim(), 'ai');
+            } else {
+                // 正常模式：处理图表数据
+                const parts = SplitAIResponse(data.answer);
+                addMessage(parts[0].trim(), 'ai');
+                parseAndUpdateCopy(parts[1].trim());
+            }
+            return data.answer;
+        } else {
+            throw new Error('API返回无答案');
+        }
+    } catch (error) {
+        console.error('API错误:', error);
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+        updateStatus(`❌ API错误: ${error.message}`);
+        return null;
+    }
+}
+        // 新增：获取推理模式相关元素
+const inferenceBtn = document.getElementById('inference-btn');
+const inferenceModal = document.getElementById('inference-modal');
+const inferenceChatBox = document.getElementById('inference-chat-box');
+const inferenceInput = document.getElementById('inference-input');
+const inferenceSendBtn = document.getElementById('inference-send-btn');
+const closeBtn = document.querySelector('.close-btn');
+// 推理窗口专用的API调用函数
+async function callDifyAPIForInference(userMessage) {
+    try {
+        // 为推理窗口添加"思考中"消息
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message ai-msg';
+        loadingDiv.innerHTML = `<div class="inference-loading">福尔摩斯思考中<span class="inference-dot"></span><span class="inference-dot"></span><span class="inference-dot"></span></div>`;
+        inferenceChatBox.appendChild(loadingDiv);
+        inferenceChatBox.scrollTop = inferenceChatBox.scrollHeight;
+        
+        const payload = {
+            query: userMessage,
+            response_mode: "blocking",
+            conversation_id: "",
+            user: "inference_mode_" + Date.now(),  // 使用不同的user标识
+            inputs: {}
+        };
+        
+        // 如果有上传的文件，添加到payload
+        if (uploadedFile) {
+            const fileType = getDifyFileType(uploadedFile.name);
+            payload.files = [{
+                type: fileType,
+                transfer_method: "local_file",
+                upload_file_id: uploadedFile.id
+            }];
+        }
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        // 移除加载气泡
+        const loadingMsg = inferenceChatBox.querySelector('.inference-loading');
+        if (loadingMsg) loadingMsg.parentElement.remove();
+        
+        if (data.answer) {
+            // 推理模式的回复直接显示在推理窗口
+            addInferenceMessage(data.answer.trim(), 'ai');
+            return data.answer;
+        } else {
+            throw new Error('API返回无答案');
+        }
+    } catch (error) {
+        console.error('推理模式API错误:', error);
+        // 移除加载气泡
+        const loadingMsg = inferenceChatBox.querySelector('.inference-loading');
+        if (loadingMsg) loadingMsg.parentElement.remove();
+        
+        addInferenceMessage(`抱歉，推理评估出错了: ${error.message}`, 'ai');
+        return null;
+    }
+}
+// 推理模式消息添加函数
+function addInferenceMessage(text, type = 'ai') {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${type === 'user' ? 'user-msg' : 'ai-msg'}`;
+    msgDiv.textContent = text;
+    inferenceChatBox.appendChild(msgDiv);
+    inferenceChatBox.scrollTop = inferenceChatBox.scrollHeight;
+}
+
+// 打开推理窗口
+inferenceBtn.addEventListener('click', () => {
+    inferenceModal.style.display = 'flex';
+    inferenceInput.focus();
+});
+
+// 关闭推理窗口
+closeBtn.addEventListener('click', () => {
+    inferenceModal.style.display = 'none';
+});
+
+// 点击背景关闭窗口
+inferenceModal.addEventListener('click', (e) => {
+    if (e.target === inferenceModal) {
+        inferenceModal.style.display = 'none';
+    }
+});
+
+// 新增：获取使用手册相关元素
+const helpBtn = document.getElementById('help-btn');
+const helpModal = document.getElementById('help-modal');
+const helpCloseBtn = document.querySelector('.help-close-btn');
+
+// 打开帮助窗口
+helpBtn.addEventListener('click', () => {
+    helpModal.style.display = 'flex';
+});
+
+// 关闭帮助窗口
+helpCloseBtn.addEventListener('click', () => {
+    helpModal.style.display = 'none';
+});
+
+// 点击背景关闭帮助窗口
+helpModal.addEventListener('click', (e) => {
+    if (e.target === helpModal) {
+        helpModal.style.display = 'none';
+    }
+});
+
+// 完整的修复版 handleInferenceSend 函数
+async function handleInferenceSend() {
+    const message = inferenceInput.value.trim();
+    if (!message) { 
+        alert('请输入你的推理'); 
+        return; 
+    }
+    
+    // 构建最终消息
+    let finalMessage = `##推理真相 ${message}`;
+    
+    // 如果有上传的文件，添加到消息中
+    if (uploadedFile) {
+        finalMessage = `##推理真相 ##上传文件 ${message}`;
+    }
+    
+    // 添加用户消息
+    addInferenceMessage(message, 'user');
+    inferenceInput.value = '';
+    inferenceInput.disabled = true;
+    inferenceSendBtn.disabled = true;
+    
+    try {
+        // 发送到AI - 使用推理窗口专用的函数
+        await callDifyAPIForInference(finalMessage);
+        
+    } catch (error) {
+        console.error('推理模式API错误:', error);
+        addInferenceMessage(`抱歉，推理评估出错了: ${error.message}`, 'ai');
+    } finally {
+        inferenceInput.disabled = false;
+        inferenceSendBtn.disabled = false;
+        inferenceInput.focus();
+    }
+}
+
+
+// 推理模式发送按钮事件
+inferenceSendBtn.addEventListener('click', handleInferenceSend);
+
+// 推理模式回车发送
+inferenceInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleInferenceSend();
+});
+
+        // 修改原有的handleSendMessage函数，避免和推理窗口冲突
+let uploadedFile = null;
+let fileUploadCount = 0; // 记录上传次数
+
+// 获取文件上传相关元素
+const fileUploadInput = document.getElementById('file-upload');
+const uploadBtn = document.getElementById('upload-btn');
+
+
+// ========== 文件上传功能 ==========
+
+// 文件上传按钮点击事件
+uploadBtn.addEventListener('click', () => {
+    fileUploadInput.click();
+});
+
+// 文件选择事件
+fileUploadInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // 检查文件大小（限制为10MB）
+    if (file.size > 10 * 1024 * 1024) {
+        alert('文件大小不能超过10MB');
+        return;
+    }
+    
+// 显示上传状态（替换原有emoji）
+uploadBtn.disabled = true;
+uploadBtn.innerHTML = '+'; // 原'📤' 改为纯+号
+updateStatus(`正在上传文件: ${file.name}...`);
+    
+    try {
+        // 上传文件到Dify
+        const fileData = await uploadFileToDify(file);
+        
+        // 保存文件信息
+        uploadedFile = {
+            id: fileData.id,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString()
+        };
+        
+        fileUploadCount++; // 增加上传计数
+        
+        // 显示文件信息
+        showFileInfo();
+        
+        // 如果是第一次上传文件，自动发送"请刷新剧本"消息
+        if (fileUploadCount === 1) {
+            setTimeout(() => {
+                autoSendRefreshMessage();
+            }, 1000);
+        }
+        
+        updateStatus(`✅ 文件上传成功: ${file.name}`);
+        
+    } catch (error) {
+        console.error('文件上传失败:', error);
+        updateStatus(`❌ 文件上传失败: ${error.message}`);
+        alert('文件上传失败，请重试');
+    } finally {
+    uploadBtn.disabled = false;
+    uploadBtn.innerHTML = '+'; // 原'📎' 改为纯+号
+    fileUploadInput.value = ''; // 重置文件输入
+}
+});
+
+// 上传文件到Dify
+// 上传文件到Dify（修正版）
+async function uploadFileToDify(file) {
+    // 生成统一的user标识，确保上传和聊天时使用相同的user
+    const userId = `detective_game_user_${Date.now()}`;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user', userId);
+    
+    try {
+        const response = await fetch('https://api.dify.ai/v1/files/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`
+                // 不要设置Content-Type，浏览器会自动设置multipart/form-data
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Dify上传错误:', {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorText
+            });
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('文件上传成功:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('文件上传失败:', error);
+        throw error;
+    }
+}
+// 显示文件信息
+function showFileInfo() {
+    // 移除现有的文件信息显示
+    const existingInfo = document.querySelector('.file-info');
+    if (existingInfo) {
+        existingInfo.remove();
+    }
+    
+    if (!uploadedFile) return;
+    
+    // 创建文件信息显示区域
+    const fileInfoDiv = document.createElement('div');
+    fileInfoDiv.className = 'file-info';
+    fileInfoDiv.innerHTML = `
+        <span>📎 ${uploadedFile.name} (${formatFileSize(uploadedFile.size)})</span>
+        <button class="remove-file" title="移除文件">×</button>
+    `;
+    
+    // 插入到聊天框顶部
+    const chatBox = document.getElementById('chat-box');
+    chatBox.insertBefore(fileInfoDiv, chatBox.firstChild);
+    
+    // 添加移除文件事件
+    fileInfoDiv.querySelector('.remove-file').addEventListener('click', removeUploadedFile);
+}
+
+// 移除上传的文件
+function removeUploadedFile() {
+    uploadedFile = null;
+    
+    // 移除文件信息显示
+    const fileInfoDiv = document.querySelector('.file-info');
+    if (fileInfoDiv) {
+        fileInfoDiv.remove();
+    }
+    
+    updateStatus('文件已移除');
+}
+
+// 自动发送"请刷新剧本"消息
+function autoSendRefreshMessage() {
+    if (!uploadedFile) return;
+    
+    // 构建消息
+    const message = "##上传文件 请刷新剧本";
+    
+    // 添加到聊天框
+    addMessage("请刷新剧本", 'user');
+    
+    // 发送到AI - 直接调用，不经过handleSendMessage
+    setTimeout(async () => {
+        updateStatus('正在刷新剧本...');
+        try {
+            await callDifyAPIWithFile(message);
+        } catch (error) {
+            console.error('自动刷新失败:', error);
+        }
+    }, 500);
+}
+// 带文件的API调用
+async function callDifyAPI(userMessage) {
+    try {
+        addMessage('thinking', 'ai');
+        
+        const payload = {
+            query: userMessage,
+            response_mode: "blocking",
+            conversation_id: "",
+            user: "detective_game_" + Date.now(),
+            inputs: {}
+        };
+        
+        // 检查消息是否包含上传文件标记
+        const hasFileMark = userMessage.includes('##上传文件') && uploadedFile;
+        
+        if (hasFileMark && uploadedFile) {
+            // 关键修改：根据文件类型设置正确的type
+            const fileType = getDifyFileType(uploadedFile.name);
+            payload.files = [{
+                type: fileType,
+                transfer_method: "local_file",
+                upload_file_id: uploadedFile.id
+            }];
+        }
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Dify API错误详情:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        
+        if (data.answer) {
+            // 检查是否是推理模式（包含##推理真相）
+            if (userMessage.includes('##推理真相')) {
+                // 推理模式：直接显示完整回答
+                addMessage(data.answer.trim(), 'ai');
+            } else {
+                // 正常模式：处理图表数据
+                const parts = SplitAIResponse(data.answer);
+                addMessage(parts[0].trim(), 'ai');
+                parseAndUpdateCopy(parts[1].trim());
+            }
+            return data.answer;
+        } else {
+            throw new Error('API返回无答案');
+        }
+    } catch (error) {
+        console.error('API错误:', error);
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+        updateStatus(`❌ API错误: ${error.message}`);
+        return null;
+    }
+}
+
+// 辅助函数：格式化文件大小
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// ========== 修改原有的发送消息函数 ==========
+
+async function handleSendMessage() {
+    // 如果推理窗口是打开的，不执行正常模式
+    if (inferenceModal.style.display === 'flex' || helpModal.style.display === 'flex') {
+        alert('请先关闭弹窗再进行提问');
+        return;
+    }
+    
+    const message = userInput.value.trim();
+    if (!message && !uploadedFile) { 
+        alert('请输入问题或上传文件');
+        return;
+    }
+    
+    // 获取下拉框选择的对象
+    const targetPerson = questionTarget.value.trim();
+    
+    // 构建最终消息
+    let finalMessage = '';
+    if (message) {
+        finalMessage = `我想问问${targetPerson}，${message}`;
+    } else {
+        finalMessage = "##上传文件";
+    }
+    
+    // 如果有上传的文件，添加文件前缀
+    if (uploadedFile) {
+        if (message.toLowerCase().includes('##推理真相')) {
+            // 如果包含推理真相，放在推理真相后面
+            finalMessage = `##推理真相 ##上传文件 ${finalMessage.replace('##推理真相', '').trim()}`;
+        } else {
+            // 否则放在最前面
+            finalMessage = `##上传文件 ${finalMessage}`;
+        }
+    }
+    
+    // 禁用输入
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+    questionTarget.disabled = true;
+    uploadBtn.disabled = true;
+    
+    // 添加用户消息到聊天框
+    addMessage(message || (uploadedFile ? "上传了文件" : ""), 'user');
+    userInput.value = '';
+    
+    updateStatus('正在处理请求...');
+    
+    try {
+        // 使用专用的推理窗口API函数
+    await callDifyAPIForInference(finalMessage);
+    } catch (error) {
+        console.error('发送消息失败:', error);
+    } finally {
+        // 恢复输入
+        sendBtn.disabled = false;
+        userInput.disabled = false;
+        questionTarget.disabled = false;
+        uploadBtn.disabled = false;
+        userInput.focus();
+    }
+}
+
+
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        downloadBtn.addEventListener('click', downloadCopyAsNewFile);
+        // 根据文件名判断Dify文件类型
+function getDifyFileType(filename) {
+    const extension = filename.split('.').pop().toLowerCase();
+    
+    // 根据Dify API文档，文档类文件使用"document"
+    const documentExtensions = ['txt', 'md', 'markdown', 'mdx', 'pdf', 'html', 
+                                'xlsx', 'xls', 'vtt', 'properties', 'doc', 'docx', 
+                                'csv', 'eml', 'msg', 'pptx', 'ppt', 'xml', 'epub'];
+    
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    const audioExtensions = ['mp3', 'm4a', 'wav', 'webm', 'mpga'];
+    const videoExtensions = ['mp4', 'mov', 'mpeg', 'webm'];
+    
+    if (documentExtensions.includes(extension)) {
+        return 'document';
+    } else if (imageExtensions.includes(extension)) {
+        return 'image';
+    } else if (audioExtensions.includes(extension)) {
+        return 'audio';
+    } else if (videoExtensions.includes(extension)) {
+        return 'video';
+    } else {
+        return 'custom';  // 其他文件类型
+    }
+}
+// 带文件的API调用（修正版本）
+async function callDifyAPIWithFile(userMessage) {
+    try {
+        addMessage('thinking', 'ai');
+        
+        const payload = {
+            query: userMessage,
+            response_mode: "blocking",
+            conversation_id: "",
+            user: "detective_game_" + Date.now(),
+            inputs: {}
+        };
+        
+        // 如果有上传的文件，添加到payload
+        if (uploadedFile) {
+            const fileType = getDifyFileType(uploadedFile.name);
+            payload.files = [{
+                type: fileType,  // 关键：必须是"document"对于txt文件
+                transfer_method: "local_file",
+                upload_file_id: uploadedFile.id
+            }];
+        }
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Dify API错误详情:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        
+        if (data.answer) {
+            // 检查是否是推理模式
+            if (userMessage.includes('##推理真相')) {
+                addMessage(data.answer.trim(), 'ai');
+            } else {
+                // 正常模式：处理图表数据
+                const parts = SplitAIResponse(data.answer);
+                addMessage(parts[0].trim(), 'ai');
+                
+                // 如果有图表数据，更新图表
+                if (parts.length > 1 && parts[1].trim()) {
+                    try {
+                        parseAndUpdateCopy(parts[1].trim());
+                    } catch (e) {
+                        console.error('图表更新失败:', e);
+                    }
+                }
+            }
+            return data.answer;
+        } else {
+            throw new Error('API返回无答案');
+        }
+    } catch (error) {
+        console.error('带文件的API错误:', error);
+        const thinkingMsg = chatBox.querySelector('.loading');
+        if (thinkingMsg) thinkingMsg.parentElement.remove();
+        addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+        updateStatus(`❌ API错误: ${error.message}`);
+        return null;
+    }
+}
+        window.onload = async () => {
+            try {
+                await loadOriginalAndCreateCopy();
+                initGraphWithCopy();
+                userInput.focus();
+                updateStatus('✅ 系统就绪 | 所有修改仅作用于内存副本，可点击「保存当前副本」导出');
+            } catch (err) {
+                console.error('初始化失败:', err);
+            }
+        };
+    </script>
+</body>
+</html>

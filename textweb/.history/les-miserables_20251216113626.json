@@ -1,0 +1,34 @@
+{
+  "categories": [
+    {"name": "主角"},
+    {"name": "配角"},
+    {"name": "反派"},
+    {"name": "次要角色"}
+  ],
+  "nodes": [
+    {"id": 0, "name": "Jean Valjean", "symbolSize": 25, "category": 0},
+    {"id": 1, "name": "Javert", "symbolSize": 22, "category": 2},
+    {"id": 2, "name": "Cosette", "symbolSize": 20, "category": 1},
+    {"id": 3, "name": "Marius Pontmercy", "symbolSize": 20, "category": 1},
+    {"id": 4, "name": "Éponine", "symbolSize": 18, "category": 3},
+    {"id": 5, "name": "Thenardier", "symbolSize": 18, "category": 2},
+    {"id": 6, "name": "Madame Thenardier", "symbolSize": 16, "category": 3},
+    {"id": 7, "name": "Fantine", "symbolSize": 20, "category": 1},
+    {"id": 8, "name": "Monsieur Gillenormand", "symbolSize": 16, "category": 3},
+    {"id": 9, "name": "Enjolras", "symbolSize": 18, "category": 3}
+  ],
+  "links": [
+    {"source": 0, "target": 1, "value": 5},
+    {"source": 0, "target": 2, "value": 4},
+    {"source": 2, "target": 3, "value": 4},
+    {"source": 3, "target": 4, "value": 3},
+    {"source": 4, "target": 0, "value": 3},
+    {"source": 0, "target": 7, "value": 4},
+    {"source": 2, "target": 5, "value": 2},
+    {"source": 5, "target": 6, "value": 4},
+    {"source": 3, "target": 8, "value": 2},
+    {"source": 3, "target": 9, "value": 3},
+    {"source": 1, "target": 0, "value": 5},
+    {"source": 5, "target": 0, "value": 2}
+  ]
+}

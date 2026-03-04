@@ -1,0 +1,33 @@
+{
+  "categories": [
+    {
+      "name": "人物"
+    },
+    {
+      "name": "事件"
+    }
+  ],
+  "nodes": [
+    {
+      "id": 0,
+      "name": "雷切特",
+      "symbolSize": 25,
+      "category": 0,
+      "symbol": "circle"
+    },
+    {
+      "id": 1,
+      "name": "收到恐吓信",
+      "symbolSize": 18,
+      "category": 1,
+      "symbol": "diamond"
+    }
+  ],
+  "links": [
+    {
+      "source": 0,
+      "target": 1,
+      "value": 3
+    }
+  ]
+}

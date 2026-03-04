@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>东方快车探案 - AI对话与关系图</title>
+    <!-- 引入jQuery（新增：用于读取JSON文件） -->
+    <script type="text/javascript" src="https://echarts.apache.org/zh/js/vendors/jquery@3.7.1/dist/jquery.min.js"></script>
+    <!-- 引入ECharts -->
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: rgba(255, 255, 255, 0.71);
+            height: 100vh;
+            padding: 20px;
+        }
+        body::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('black.png'); /* 替换为你的图片URL */
+        background-size: cover; /* 调整图片大小以覆盖整个背景区域 */
+        background-position: center; /* 设置图片在背景中的位置 */
+        z-index: -1; /* 确保这个伪元素在其他内容的下面 */
+    }
+            
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 25px 30px;
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .header h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 15px;
+        }
+        
+        /* 主要内容区域 - 关系图在上，对话在下 */
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* 关系图区域 - 占60%高度 */
+        .graph-section {
+            flex: 5;  /* 改为flex比例控制，不是固定高度 */
+            min-height: 300px; /* 最小高度保证显示 */
+            position: relative;
+            border-bottom: 2px solid #e0e0e0;
+            background: #64646467;
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 对话区域 - 占40%高度 */
+        .chat-section {
+            flex: 2;  /* 改为flex比例控制 */
+            display: flex;
+            flex-direction: column;
+            min-height: 250px; /* 最小高度保证显示 */
+        }
+        
+        .chat-box {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgb(255, 255, 255);
+        }
+        
+        .message {
+            margin: 12px 0;
+            padding: 14px 18px;
+            border-radius: 10px;
+            line-height: 1.6;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-msg {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+        }
+        
+        .ai-msg {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            color: #1b5e20;
+            border: 1px solid #a5d6a7;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+        }
+        
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #2196f3;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.4s infinite;
+        }
+        
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+        
+        .input-area {
+            padding: 20px;
+            background: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        
+        input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        
+        button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 100px;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #1976d2, #1565c0);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #bdbdbd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #666;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+        
+        /* 响应式调整 */
+        @media (max-height: 800px) {
+            .graph-section { flex: 2; }
+            .chat-section { flex: 1; }
+        }
+        
+        @media (max-height: 600px) {
+            .graph-section { min-height: 200px; }
+            .chat-section { min-height: 200px; }
+            .header { padding: 15px; }
+        }
+        
+        /* 图表图例样式 */
+        .graph-legend {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h2>🚂 东方快车探案 - AI对话与关系图</h2>
+            <p>基于JSON副本的动态修改 | 原始文件：case-data.json</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 关系图区域 -->
+            <div class="graph-section">
+                <div id="graph-container"></div>
+                <div class="graph-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e74c3c;"></div>
+                        <span>人物</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #3498db;"></div>
+                        <span>事件</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 对话区域 -->
+            <div class="chat-section">
+                <div id="chat-box" class="chat-box">
+                    <div class="message ai-msg">
+                        亲爱的探员，感谢你不辞辛苦来到这里，你可以对目前发生的情况展开提问，一次只问1-2个问题更容易得到准确答案
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <input 
+                        type="text" 
+                        id="user-input" 
+                        placeholder="向波洛侦探提问（例如：雷切特是怎么死的？）" 
+                        autocomplete="off"
+                    >
+                    <button id="send-btn">发送</button>
+                    <!-- 新增：保存副本按钮 -->
+                    <button id="download-btn">保存当前副本</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="status" class="status">
+            就绪 - 等待加载原始JSON文件
+        </div>
+    </div>
+
+    <script>
+        /* 配置部分 */
+        const API_KEY = 'app-Yvdf9uBlW6VQChriK838JPcA';
+        const API_URL = 'https://api.dify.ai/v1/chat-messages';
+        const ORIGINAL_JSON_PATH = './case-data.json'; // 原始文件路径
+        
+        /* DOM元素 */
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const status = document.getElementById('status');
+        
+        /* ECharts实例 */
+        let myChart = null;
+        
+        /* 核心数据：原始数据 + 内存副本 */
+        let originalGraphData = {}; // 原始JSON数据（只读，不修改）
+        let graphDataCopy = {};     // 内存副本（所有修改都操作这个）
+        
+        /* 节点ID计数器（从副本最大ID+1开始） */
+        let nodeIdCounter = 0;
+        
+        /* 步骤1：读取原始JSON，创建内存副本 */
+        function loadOriginalAndCreateCopy() {
+            return new Promise((resolve, reject) => {
+                updateStatus('正在读取原始文件 case-data.json...');
+                // 读取原始JSON
+                $.getJSON(ORIGINAL_JSON_PATH, function (originalData) {
+                    originalGraphData = JSON.parse(JSON.stringify(originalData)); // 深拷贝原始数据
+                    graphDataCopy = JSON.parse(JSON.stringify(originalData));     // 创建内存副本（深拷贝，避免关联）
+                    
+                    // 计算副本的最大节点ID
+                    if (graphDataCopy.nodes && graphDataCopy.nodes.length > 0) {
+                        nodeIdCounter = Math.max(...graphDataCopy.nodes.map(n => n.id)) + 1;
+                    }
+                    
+                    updateStatus(`✅ 已创建原始文件副本 | 初始节点数：${graphDataCopy.nodes.length}`);
+                    resolve(graphDataCopy);
+                }).fail(function (err) {
+                    console.error('原始JSON读取失败:', err);
+                    updateStatus('❌ 原始文件读取失败，请检查case-data.json是否存在');
+                    reject(err);
+                });
+            });
+        }
+        
+        /* 步骤2：初始化图表（基于内存副本） */
+        function initGraphWithCopy() {
+            const chartDom = document.getElementById('graph-container');
+            myChart = echarts.init(chartDom);
+            
+            const option = {
+                title: {
+                    text: '思维殿堂-案件关系图',
+                    left: 'center',
+                    top: 10,
+                    textStyle: { fontSize: 18, fontWeight: 'bold',color:'#111111' }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.dataType === 'node') {
+                            return `<b>${params.data.name}</b><br/>类型: ${graphDataCopy.categories[params.data.category].name}`;
+                        } else if (params.dataType === 'edge') {
+                            const source = graphDataCopy.nodes.find(n => n.id === params.data.source);
+                            const target = graphDataCopy.nodes.find(n => n.id === params.data.target);
+                            return `<b>关系连接</b><br/>${source?.name} → ${target?.name}`;
+                        }
+                    }
+                },
+                legend: { show: true, top: 40, data: graphDataCopy.categories.map(cat => cat.name) },
+                animationDuration: 1500,
+                animationEasingUpdate: 'quinticInOut',
+                series: [{
+                    name: '案件关系',
+                    type: 'graph',
+                    layout: 'force',
+                    data: graphDataCopy.nodes,   // 用副本渲染
+                    links: graphDataCopy.links,   // 用副本渲染
+                    categories: graphDataCopy.categories,
+                    roam: true,
+                    draggable: true,
+                    label: { show: true, position: 'right', formatter: '{b}', fontSize: 12 },
+                    lineStyle: { color: 'source', curveness: 0.1, width: 2 },
+                    emphasis: { focus: 'adjacency', lineStyle: { width: 4 } },
+                    force: { repulsion: 200, edgeLength: 100, gravity: 0.05, layoutAnimation: true }
+                }]
+            };
+            
+            myChart.setOption(option);
+            // 初始缩放
+            myChart.setOption({
+                series: [{ zoom: 3, center: [myChart.getWidth() / 2, myChart.getHeight() / 2] }]
+            });
+            
+            window.addEventListener('resize', () => myChart.resize());
+        }
+        function SplitAIResponse(responseText) {
+            // 分割===DATA===
+            const parts = responseText.split('===DATA===');
+            return parts;
+            
+        }
+        /* 步骤3：从AI回复分割数据，修改内存副本 */
+        function parseAndUpdateCopy(jsonStr) {
+
+            let newData;
+            try {
+                newData = JSON.parse(jsonStr);
+            } catch (e) {
+                updateStatus('❌ AI回复中的JSON格式错误');
+                console.error('JSON解析失败:', e);
+                return;
+            }
+            
+            // 核心：修改内存副本（只改copy，不改original）
+            // 1. 新增节点（去重）
+            if (newData.nodes) {
+                newData.nodes.forEach(newNode => {
+                    const exists = graphDataCopy.nodes.some(n => n.name === newNode.name);
+                    if (!exists) {
+                        newNode.id = nodeIdCounter++;
+                        graphDataCopy.nodes.push(newNode); // 新增到副本
+                    }
+                });
+            }
+            
+            // 2. 新增连线
+            if (newData.links) {
+                graphDataCopy.links.push(...newData.links); // 新增到副本
+            }
+            
+            // 3. 重新渲染图表（基于更新后的副本）
+            myChart.setOption({
+                series: [{ data: graphDataCopy.nodes, links: graphDataCopy.links }]
+            });
+            
+            updateStatus(`✅ 副本已更新 | 当前节点数：${graphDataCopy.nodes.length}`);
+        }
+        
+        /* 步骤4：导出内存副本为新的JSON文件 */
+        function downloadCopyAsNewFile() {
+            // 生成带时间戳的文件名（避免重复）
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `case-data-copy-${timestamp}.json`;
+            
+            // 把内存副本转为格式化的JSON字符串
+            const copyJsonStr = JSON.stringify(graphDataCopy, null, 2);
+            const blob = new Blob([copyJsonStr], { type: 'application/json' });
+            
+            // 创建下载链接
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            
+            // 释放资源
+            URL.revokeObjectURL(a.href);
+            updateStatus(`✅ 副本已导出为：${fileName}`);
+        }
+        
+        /* 其他辅助函数（保留原有逻辑，仅修改数据来源为copy） */
+        function addMessage(text, type = 'ai') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type === 'user' ? 'user-msg' : 'ai-msg'}`;
+            if (text === 'thinking') {
+                msgDiv.innerHTML = `<div class="loading">波洛思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+            } else {
+                msgDiv.textContent = text;
+            }
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+        
+        async function callDifyAPI(userMessage) {
+            try {
+                addMessage('thinking', 'ai');
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        query: userMessage,
+                        response_mode: "blocking",
+                        conversation_id: "",
+                        user: "detective_game_" + Date.now(),
+                        inputs: {}
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                // 移除思考中消息
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                
+                if (data.answer) {
+                    const parts = SplitAIResponse(data.answer);
+                    addMessage(parts[0].trim(), 'ai');
+                    parseAndUpdateCopy(parts[1].trim()); // 修改副本
+                    return data.answer;
+                } else {
+                    throw new Error('API返回无答案');
+                }
+            } catch (error) {
+                console.error('API错误:', error);
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+                updateStatus(`❌ API错误: ${error.message}`);
+                return null;
+            }
+        }
+        
+        async function handleSendMessage() {
+            const message = userInput.value.trim();
+            if (!message) { alert('请输入问题'); return; }
+            
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            addMessage(message, 'user');
+            userInput.value = '';
+            
+            updateStatus('正在向波洛侦探提问...');
+            await callDifyAPI(message);
+            
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+        
+        /* 绑定事件 */
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSendMessage(); });
+        downloadBtn.addEventListener('click', downloadCopyAsNewFile); // 绑定保存副本事件
+        
+        /* 页面加载入口 */
+        window.onload = async () => {
+            try {
+                await loadOriginalAndCreateCopy(); // 读取原始文件，创建副本
+                initGraphWithCopy();                // 基于副本初始化图表
+                userInput.focus();
+                updateStatus('✅ 系统就绪 | 所有修改仅作用于内存副本，可点击「保存当前副本」导出');
+            } catch (err) {
+                console.error('初始化失败:', err);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>东方快车探案 - AI对话与关系图</title>
+    <script type="text/javascript" src="https://echarts.apache.org/zh/js/vendors/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        /* 定义本地字体 */
+        @font-face {
+            font-family: 'MyPingFang';
+            src: url('./YanShiYouRanXiaoKai-2.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'MyPingFang', sans-serif !important;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            background-image: url('black.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        
+        /* 修改标题容器样式 - 小长条设计 */
+        .header {
+            margin: 10px auto; /* 居中显示 */
+            padding: 8px 20px; /* 小长条尺寸 */
+            background: rgba(237, 225, 195, 0.9); /* 灰色底 */
+            border: 1px solid rgba(255, 255, 255, 0.3); /* 白色描边 */
+            border-radius: 4px; /* 轻微圆角 */
+            width: auto; /* 自适应宽度 */
+            box-shadow: none; /* 移除阴影 */
+        }
+
+        /* 修改标题文字样式 */
+        .header h2 {
+            font-size: 20px; /* 缩小字体 */
+            margin: 0; /* 移除margin */
+            color: rgba(255, 255, 255, 0.9); /* 白色文字 */
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            overflow: hidden;
+            margin: 0 20px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .graph-section {
+            flex: 5;
+            min-height: 300px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.288);
+            backdrop-filter: blur(5px);
+            border-right: 2px solid rgba(224, 224, 224, 0.7);
+        }
+        
+        #graph-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 新增：关系图右上角推理按钮 */
+        .graph-tool-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #1677ff, #0958d9);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .graph-tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
+        }
+        
+        .chat-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            min-height: 250px;
+        }
+        
+        .chat-box {
+            flex: 2;
+            padding: 20px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.288);
+            backdrop-filter: blur(5px);
+        }
+        
+        .message {
+            margin: 12px 0;
+            padding: 14px 18px;
+            border-radius: 10px;
+            line-height: 1.6;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-msg {
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+            backdrop-filter: blur(2px);
+        }
+        
+        .ai-msg {
+            background: linear-gradient(135deg, rgba(232, 245, 233, 0.9), rgba(200, 230, 201, 0.9));
+            color: #1b5e20;
+            border: 1px solid rgba(165, 214, 167, 0.7);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+            backdrop-filter: blur(2px);
+        }
+        
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #2196f3;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.4s infinite;
+        }
+        
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+        
+        .input-area {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.288);
+            border-top: 1px solid rgba(224, 224, 224, 0.7);
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+        
+        input {
+            flex: 1;
+            width: 280px;
+            height: 60px;
+            padding: 14px 20px;
+            border: 2px solid rgba(224, 224, 224, 0.8);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: rgba(33, 150, 243, 0.8);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        button {
+            padding: 14px 14px;
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.9), rgba(25, 118, 210, 0.9));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 80px;
+            backdrop-filter: blur(2px);
+        }
+        
+        button:hover {
+            background-color: #4096ff;
+            transform: translateY(-10px) scale(1.1);
+            box-shadow: 0 10px 20px rgba(22, 119, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹性曲线 */
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: rgba(189, 189, 189, 0.9);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.288);
+            border-top: 1px solid rgba(224, 224, 224, 0.7);
+            flex-shrink: 0;
+            margin: 0 20px;
+            border-radius: 0 0 15px 15px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .graph-legend {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            backdrop-filter: blur(5px);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .select-box {
+            width: 88px; /* 按需调整窄宽度，可改成100px/150px */
+            background-color: #1677ff; /* 替换成你其他蓝色按钮的颜色 */
+            color: #fff; /* 文字白色，保证能看清 */
+            border-radius: 8px; /* 圆角，和其他按钮保持一致 */
+            border: none; /* 清除默认边框 */
+            padding: 5px 5px; /* 内边距，适配按钮样式 */
+            appearance: none; /* 清除原生下拉框样式 */
+            -webkit-appearance: none;
+            /* 自定义下拉箭头（可选，不想要就删掉下面4行） */
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+        .select-box:hover {
+            background-color: #4096ff;
+            transform: translateY(-10px) scale(1.1);
+            box-shadow: 0 10px 20px rgba(22, 119, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 弹性曲线 */
+        }
+        .select-box:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.3);
+        }
+        
+        /* 新增：推理画板弹窗样式 */
+        .map-draw-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .map-draw-content {
+            width: 90%;
+            height: 90%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            display: flex;
+            overflow: hidden;
+            box-shadow: 0 8px 48px rgba(0, 0, 0, 0.3);
+        }
+        /* 左侧人物列表 */
+        .map-person-list {
+            width: 200px;
+            background: rgba(245, 247, 250, 1);
+            border-right: 1px solid #e8e8e8;
+            padding: 20px 10px;
+            overflow-y: auto;
+        }
+        .map-person-item {
+            padding: 12px 8px;
+            margin: 8px 0;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #e8e8e8;
+            cursor: grab;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .map-person-item:hover {
+            background: #f0f7ff;
+            border-color: #1677ff;
+        }
+        .map-person-item:active {
+            cursor: grabbing;
+        }
+        /* 右侧画板区域 */
+        .map-draw-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        /* 顶部工具条 */
+        .map-tool-bar {
+            padding: 16px;
+            background: #fafafa;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .map-shape-tool {
+            display: flex;
+            gap: 12px;
+        }
+        .shape-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid #e8e8e8;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .shape-btn.active {
+            background: #1677ff;
+            color: #fff;
+            border-color: #1677ff;
+        }
+        .shape-btn:hover {
+            border-color: #1677ff;
+            color: #1677ff;
+        }
+        /* 画板画布 */
+        .map-canvas-wrap {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+        }
+        #map-draw-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+        /* 关闭按钮 */
+        .map-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 110;
+        }
+        
+        /* 新增：图形操作按钮样式（删除×、重命名） */
+        .map-shape-actions {
+            position: absolute;
+            z-index: 105;
+            pointer-events: none; /* 不遮挡Canvas鼠标事件 */
+        }
+        .shape-delete-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: all 0.2s;
+        }
+        .shape-delete-btn:hover {
+            background: #ff1f1f;
+            transform: scale(1.1);
+        }
+        .shape-rename-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            background: #1677ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            pointer-events: auto;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .shape-rename-btn:hover {
+            background: #0958d9;
+            transform: scale(1.05);
+        }
+        
+        /* 新增：重命名输入框样式 */
+        .shape-rename-input {
+            position: absolute;
+            z-index: 110;
+            border: 2px solid #1677ff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            outline: none;
+            text-align: center;
+            background: #fff;
+            pointer-events: auto;
+            display: none;
+        }
+        /* 新增：图形操作按钮样式（删除×、重命名）- 修复可见性 */
+        .map-shape-actions {
+            position: absolute;
+            z-index: 105;
+            pointer-events: none; /* 不遮挡Canvas鼠标事件 */
+            display: none; /* 默认隐藏，逻辑控制显示 */
+            top: 0;
+            left: 0;
+        }
+        .shape-delete-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: all 0.2s;
+            position: absolute; /* 按钮独立定位 */
+            top: 0;
+            right: 0;
+        }
+        .shape-rename-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            background: #1677ff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            pointer-events: auto;
+            transition: all 0.2s;
+            white-space: nowrap;
+            position: absolute; /* 按钮独立定位 */
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .shape-delete-btn:hover {
+            background: #ff1f1f;
+            transform: scale(1.1);
+        }
+        .shape-rename-btn:hover {
+            background: #0958d9;
+            transform: scale(1.05);
+        }
+
+        /* 新增：重命名输入框样式 - 修复可见性 */
+        .shape-rename-input {
+            position: absolute;
+            z-index: 110;
+            border: 2px solid #1677ff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            outline: none;
+            text-align: center;
+            background: #fff;
+            pointer-events: auto;
+            display: none; /* 默认隐藏 */
+            min-width: 100px;
+            height: 30px;
+            line-height: 30px;
+        }
+        @media (max-height: 800px) {
+            .graph-section { flex: 2; }
+            .chat-section { flex: 1; }
+        }
+        
+        @media (max-height: 600px) {
+            .graph-section { min-height: 200px; }
+            .chat-section { min-height: 200px; }
+            .header { padding: 15px; }
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            .graph-section {
+                border-right: none;
+                border-bottom: 2px solid rgba(224, 224, 224, 0.7);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🚂 东方快车探案 - AI对话与关系图</h2>
+    </div>
+    
+    <div class="main-content">
+        <div class="graph-section">
+            <!-- 新增：关系图右上角推理按钮 -->
+            <button class="graph-tool-btn" id="open-map-draw-btn">📊 打开推理地图</button>
+            <div id="graph-container"></div>
+            <div class="graph-legend">
+                <div class="legend-item"></div>
+                <div class="legend-item"></div>
+            </div>
+        </div>
+        
+        <div class="chat-section">
+            <div id="chat-box" class="chat-box">
+                <div class="message ai-msg">
+                    亲爱的探员，感谢你不辞辛苦来到这里，你可以对目前发生的情况展开提问，一次只问1-2个问题更容易得到准确答案
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <select id="question-target" class="select-box">
+                    <option value="白德培">白德培</option>
+                    <option value="阿仁">阿仁</option>
+                    <option value="关岳鹏">关岳鹏</option>
+                    <option value="刘建明">刘建明</option>
+                    <option value="周小燕">周小燕</option>
+                    <option value="老胡">老胡</option>
+                    <option value="小汪">小汪</option>
+                    <option value="八爷">八爷（化名）</option>
+                    <option value="小龙哥">小龙哥</option>
+                    <option value="耗子">耗子（化名）</option>
+                    <option value="其他人">其他人（自己补充询问对象）</option>
+                </select>
+                
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="选择询问的对象，获取线索" 
+                    autocomplete="off"
+                >
+                <button id="send-btn">发送</button>
+                <button id="download-btn">保存当前副本</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="status" class="status">
+        就绪 - 等待加载原始JSON文件
+    </div>
+    
+    <!-- 新增：推理画板弹窗 -->
+    <div class="map-draw-modal" id="map-draw-modal">
+        <div class="map-draw-content">
+            <!-- 左侧人物列表 -->
+            <div class="map-person-list" id="map-person-list"></div>
+            <!-- 右侧画板区域 -->
+            <div class="map-draw-area">
+                <div class="map-tool-bar">
+                    <h3>推理画板</h3>
+                    <div class="map-shape-tool">
+                        <button class="shape-btn" data-shape="rect" title="正方形">□</button>
+                        <button class="shape-btn" data-shape="circle" title="圆形">○</button>
+                    </div>
+                    <span>提示：拖拽绘制图形，悬浮图形显示操作按钮，拖拽人物节点到画板</span>
+                </div>
+                <div class="map-canvas-wrap" id="map-canvas-wrap">
+                    <canvas id="map-draw-canvas"></canvas>
+                    <!-- 图形操作按钮容器（动态渲染） -->
+                    <div class="map-shape-actions" id="map-shape-actions">
+                        <button class="shape-delete-btn" id="shape-delete-btn">×</button>
+                        <button class="shape-rename-btn" id="shape-rename-btn">重命名</button>
+                    </div>
+                    <!-- 重命名输入框（动态显示） -->
+                    <input type="text" class="shape-rename-input" id="shape-rename-input">
+                    <button class="map-close-btn" id="map-close-btn">×</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'app-Yvdf9uBlW6VQChriK838JPcA';
+        const API_URL = 'https://api.dify.ai/v1/chat-messages';
+        const ORIGINAL_JSON_PATH = './case-data.json';
+        
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const questionTarget = document.getElementById('question-target');
+        const sendBtn = document.getElementById('send-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const status = document.getElementById('status');
+        
+        // 新增：推理画板相关元素
+        const openMapDrawBtn = document.getElementById('open-map-draw-btn');
+        const mapDrawModal = document.getElementById('map-draw-modal');
+        const mapCloseBtn = document.getElementById('map-close-btn');
+        const mapPersonList = document.getElementById('map-person-list');
+        const mapDrawCanvas = document.getElementById('map-draw-canvas');
+        const mapCanvasWrap = document.getElementById('map-canvas-wrap');
+        const shapeBtns = document.querySelectorAll('.shape-btn');
+        const mapShapeActions = document.getElementById('map-shape-actions');
+        const shapeDeleteBtn = document.getElementById('shape-delete-btn');
+        const shapeRenameBtn = document.getElementById('shape-rename-btn');
+        const shapeRenameInput = document.getElementById('shape-rename-input');
+        const canvasCtx = mapDrawCanvas.getContext ? mapDrawCanvas.getContext('2d') : null;
+        
+        let myChart = null;
+        let originalGraphData = {};
+        let graphDataCopy = { nodes: [], links: [], categories: [{ name: '人物' }, { name: '事件' }] };
+        let nodeIdCounter = 0;
+        let nodePositionCache = {};
+        
+        // 新增：画板全局变量
+        let currentShape = null; // 当前选中的图形（rect/circle）
+        let isDrawing = false; // 是否正在绘制图形
+        let startX = 0, startY = 0; // 绘制起始坐标
+        let drawObjects = []; // 画板上的所有对象（图形+人物）
+        let hoveredObject = null; // 当前悬浮的图形对象
+        let currentRenameObj = null; // 当前正在重命名的图形对象
+        
+        // 预定义的颜色库（用于人物节点）
+        const PERSON_COLORS = [
+            '#5470c6', '#fac858', '#ee6666', '#73c0de',
+            '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#60acfc',
+            '#ff7c7c', '#5ab1ef', '#b6a2de', '#d87a80', '#8d98b3',
+            '#e5cf0d', '#97b552', '#95706d', '#dc69aa', '#07a2a4'
+        ];
+        
+        let personColorMap = new Map();
+        let nextColorIndex = 0;
+
+        // 为人物分配颜色
+        function assignPersonColor(personName) {
+            if (!personColorMap.has(personName)) {
+                const color = PERSON_COLORS[nextColorIndex % PERSON_COLORS.length];
+                personColorMap.set(personName, color);
+                nextColorIndex++;
+            }
+            return personColorMap.get(personName);
+        }
+
+        // 获取连线颜色
+        function getLinkColor(sourceName, targetName, graphData) {
+            const sourceNode = graphData.nodes.find(n => n.id === sourceName || n.name === sourceName);
+            const targetNode = graphData.nodes.find(n => n.id === targetName || n.name === targetName);
+            
+            if (sourceNode && targetNode) {
+                if (sourceNode.category === 0 && targetNode.category === 1) {
+                    return assignPersonColor(sourceNode.name);
+                }
+                if (sourceNode.category === 1 && targetNode.category === 0) {
+                    return assignPersonColor(targetNode.name);
+                }
+            }
+            return '#aaa';
+        }
+
+        // 步骤1：读取原始JSON，创建内存副本
+        function loadOriginalAndCreateCopy() {
+            return new Promise((resolve, reject) => {
+                updateStatus('正在读取原始文件 case-data.json...');
+                $.getJSON(ORIGINAL_JSON_PATH, function (originalData) {
+                    originalGraphData = JSON.parse(JSON.stringify(originalData));
+                    graphDataCopy = JSON.parse(JSON.stringify(originalData));
+
+                    if (graphDataCopy.nodes && graphDataCopy.nodes.length > 0) {
+                        graphDataCopy.nodes.forEach(node => {
+                            if (node.category === 0) {
+                                node.symbol = 'circle';
+                                node.symbolSize = node.symbolSize || 25;
+                                if (node.name) {
+                                    node.itemStyle = { color: assignPersonColor(node.name) };
+                                }
+                            } else if (node.category === 1) {
+                                node.symbol = 'diamond';
+                                node.symbolSize = node.symbolSize || 18;
+                            }
+                            
+                            if (!node.desc) {
+                                node.desc = '暂无描述';
+                            }
+                        });
+                        
+                        graphDataCopy.links.forEach(link => {
+                            link.lineStyle = { color: getLinkColor(link.source, link.target, graphDataCopy) };
+                        });
+                        
+                        nodeIdCounter = Math.max(...graphDataCopy.nodes.map(n => n.id)) + 1;
+                    }
+
+                    updateStatus(`✅ 已创建原始文件副本 | 初始节点数：${graphDataCopy.nodes.length}`);
+                    // 初始化推理画板人物列表
+                    initMapPersonList();
+                    resolve(graphDataCopy);
+                }).fail(function (err) {
+                    console.error('原始JSON读取失败:', err);
+                    updateStatus('❌ 原始文件读取失败，使用默认人物列表');
+                    // 初始化默认人物列表
+                    initMapPersonList();
+                    resolve(graphDataCopy);
+                });
+            });
+        }
+
+        // 保存节点位置
+        function saveNodePositions() {
+            if (!myChart) return;
+            const series = myChart.getOption().series[0];
+            if (series && series.data) {
+                series.data.forEach(node => {
+                    if (node.x !== undefined && node.y !== undefined) {
+                        nodePositionCache[node.id] = { x: node.x, y: node.y };
+                    }
+                });
+            }
+        }
+
+        // 恢复节点位置
+        function restoreNodePositions(nodes) {
+            nodes.forEach(node => {
+                if (nodePositionCache[node.id]) {
+                    node.x = nodePositionCache[node.id].x;
+                    node.y = nodePositionCache[node.id].y;
+                }
+            });
+        }
+
+        // 步骤2：初始化图表（基于内存副本）
+        function initGraphWithCopy() {
+            const chartDom = document.getElementById('graph-container');
+            myChart = echarts.init(chartDom);
+            
+            const option = {
+                title: {
+                text: '思维殿堂-案件关系图',
+                left: 'center',
+                top: 10,
+                textStyle: { 
+                    fontSize: 18, 
+                    fontWeight: 'bold', 
+                    color: '#ffd700'
+                }
+            },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'transparent',
+                    borderWidth: 0,
+                    padding: 0,
+                    formatter: function(params) {
+                        let nodeColor = params.color || '#5470c6';
+                        let desc = params.data.desc || '暂无描述';
+                        
+                        if (params.dataType === 'node') {
+                            return `
+                                <div style="
+                                    background: ${nodeColor};
+                                    border: 2px solid #fff;
+                                    border-radius: 8px; 
+                                    padding: 10px 15px; 
+                                    color: #fff; 
+                                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                                ">
+                                    <b style="font-size: 14px;">${params.data.name}</b><br/>
+                                    <span style="font-size: 12px; opacity: 0.9;">${desc}</span>
+                                </div>
+                            `;
+                        } else if (params.dataType === 'edge') {
+                            const source = graphDataCopy.nodes.find(n => n.id === params.data.source);
+                            const target = graphDataCopy.nodes.find(n => n.id === params.data.target);
+                            return `
+                                <div style="
+                                    background: #666; 
+                                    border: 2px solid #fff; 
+                                    border-radius: 8px; 
+                                    padding: 8px 12px; 
+                                    color: #fff;
+                                ">
+                                    <b>${source?.name} → ${target?.name}</b><br/>
+                                    <span style="font-size: 11px;">${params.data.relation || '关联关系'}</span>
+                                </div>
+                            `;
+                        }
+                    }
+                },
+                animationDurationUpdate: 1000,
+                animationEasingUpdate: 'quinticInOut',
+                legend: { 
+                show: true, 
+                top: 40, 
+                data: graphDataCopy.categories.map(cat => cat.name),
+                textStyle: {
+                    color: '#fff'
+                }
+            },
+                series: [{
+                    name: '案件关系',
+                    type: 'graph',
+                    layout: 'force',
+                    data: graphDataCopy.nodes,
+                    links: graphDataCopy.links,
+                    categories: graphDataCopy.categories,
+                    roam: true,
+                    draggable: true,
+                    label: { 
+                        fontFamily: 'MyPingFang, sans-serif',
+                        show: true, 
+                        position: 'inside', 
+                        align: 'center', 
+                        formatter: '{b}', 
+                        fontSize: 12,
+                        fontWeight: 'bold'
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        shadowBlur: 9,
+                        shadowOffsetX: 1.5,
+                        shadowOffsetY: 3,
+                        shadowColor: '#555'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            borderColor: '#fff',
+                            borderWidth: 3
+                        },
+                        focus: 'adjacency', 
+                        lineStyle: { width: 4 }
+                    },
+                    force: {
+                        enable: false,
+                        layoutAnimation: false,
+                        repulsion: 200,
+                        edgeLength: 100,
+                        gravity: 0.1
+                    },
+                    lineStyle: {
+                        curveness: 0.1,
+                        width: 1.5,
+                        opacity: 0.8
+                    }
+                }]
+            };
+            
+            myChart.setOption(option);
+            myChart.setOption({
+                series: [{ zoom: 2, center: [myChart.getWidth() / 2, myChart.getHeight() / 2] }]
+            });
+            
+            myChart.on('forceEnd', function() {
+                saveNodePositions();
+            });
+            
+            window.addEventListener('resize', () => myChart.resize());
+        }
+
+        function SplitAIResponse(responseText) {
+            const parts = responseText.split('===DATA===');
+            return parts;
+        }
+
+        // 步骤3：从AI回复分割数据，修改内存副本
+        function parseAndUpdateCopy(jsonStr) {
+            let newData;
+            try {
+                newData = JSON.parse(jsonStr);
+            } catch (e) {
+                updateStatus('❌ AI回复中的JSON格式错误');
+                console.error('JSON解析失败:', e);
+                return;
+            }
+            
+            saveNodePositions();
+            
+            if (newData.nodes) {
+                newData.nodes.forEach(newNode => {
+                    const exists = graphDataCopy.nodes.some(n => n.name === newNode.name);
+                    if (!exists) {
+                        newNode.id = nodeIdCounter++;
+                        
+                        if (newNode.category === 0) {
+                            newNode.symbol = 'circle';
+                            newNode.symbolSize = 25;
+                            if (newNode.name) {
+                                newNode.itemStyle = { color: assignPersonColor(newNode.name) };
+                            }
+                        } else if (newNode.category === 1) {
+                            newNode.symbol = 'diamond';
+                            newNode.symbolSize = 18;
+                        }
+                        
+                        if (!newNode.desc) {
+                            newNode.desc = newNode.name + '的相关信息';
+                        }
+                        
+                        graphDataCopy.nodes.push(newNode);
+                    }
+                });
+            }
+            
+            if (newData.links) {
+                newData.links.forEach(newLink => {
+                    newLink.lineStyle = { 
+                        color: getLinkColor(newLink.source, newLink.target, graphDataCopy) 
+                    };
+                    graphDataCopy.links.push(newLink);
+                });
+            }
+            
+            restoreNodePositions(graphDataCopy.nodes);
+            
+            myChart.setOption({
+                animation: false,
+                animationDurationUpdate: 0,
+                series: [{ 
+                    data: graphDataCopy.nodes, 
+                    links: graphDataCopy.links,
+                    force: {
+                        layoutAnimation: false
+                    }
+                }]
+            });
+            
+            // 更新推理画板人物列表
+            initMapPersonList();
+            updateStatus(`✅ 副本已更新 | 当前节点数：${graphDataCopy.nodes.length}`);
+        }
+
+        // 步骤4：导出内存副本为新的JSON文件
+        function downloadCopyAsNewFile() {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const fileName = `case-data-copy-${timestamp}.json`;
+            const copyJsonStr = JSON.stringify(graphDataCopy, null, 2);
+            const blob = new Blob([copyJsonStr], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            updateStatus(`✅ 副本已导出为：${fileName}`);
+        }
+
+        function addMessage(text, type = 'ai') {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type === 'user' ? 'user-msg' : 'ai-msg'}`;
+            if (text === 'thinking') {
+                msgDiv.innerHTML = `<div class="loading">波洛思考中<span class="dot"></span><span class="dot"></span><span class="dot"></span></div>`;
+            } else {
+                msgDiv.textContent = text;
+            }
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateStatus(text) {
+            status.textContent = text;
+        }
+
+        async function callDifyAPI(userMessage) {
+            try {
+                addMessage('thinking', 'ai');
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        query: userMessage,
+                        response_mode: "blocking",
+                        conversation_id: "",
+                        user: "detective_game_" + Date.now(),
+                        inputs: {}
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                
+                if (data.answer) {
+                    const parts = SplitAIResponse(data.answer);
+                    addMessage(parts[0].trim(), 'ai');
+                    if (parts[1]) {
+                        parseAndUpdateCopy(parts[1].trim());
+                    }
+                    return data.answer;
+                } else {
+                    throw new Error('API返回无答案');
+                }
+            } catch (error) {
+                console.error('API错误:', error);
+                const thinkingMsg = chatBox.querySelector('.loading');
+                if (thinkingMsg) thinkingMsg.parentElement.remove();
+                addMessage(`抱歉，出错了: ${error.message}`, 'ai');
+                updateStatus(`❌ API错误: ${error.message}`);
+                return null;
+            }
+        }
+
+        async function handleSendMessage() {
+            const message = userInput.value.trim();
+            if (!message) { alert('请输入问题'); return; }
+            
+            const targetPerson = questionTarget.value.trim();
+            const finalQuestion = `我想问问${targetPerson}，${message}`;
+
+            sendBtn.disabled = true;
+            userInput.disabled = true;
+            addMessage(message, 'user');
+            userInput.value = '';
+            
+            updateStatus('正在向波洛侦探提问...');
+            await callDifyAPI(finalQuestion);
+            
+            sendBtn.disabled = false;
+            userInput.disabled = false;
+            userInput.focus();
+        }
+
+        // ===================== 新增：推理画板功能实现 =====================
+        // 初始化画板人物列表
+        function initMapPersonList() {
+            // 清空原有列表
+            mapPersonList.innerHTML = '';
+            // 提取所有人物节点（category=0）
+            const personNodes = graphDataCopy.nodes.filter(node => node.category === 0 && node.name);
+            // 渲染人物列表
+            personNodes.forEach(person => {
+                const personItem = document.createElement('div');
+                personItem.className = 'map-person-item';
+                personItem.textContent = person.name;
+                personItem.dataset.name = person.name;
+                personItem.dataset.color = person.itemStyle?.color || assignPersonColor(person.name);
+                // 开启拖拽
+                personItem.draggable = true;
+                // 绑定拖拽事件
+                personItem.addEventListener('dragstart', handlePersonDragStart);
+                mapPersonList.appendChild(personItem);
+            });
+        }
+        
+        // 人物节点拖拽开始
+        function handlePersonDragStart(e) {
+            const personName = e.target.dataset.name;
+            const personColor = e.target.dataset.color;
+            // 传递拖拽数据
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'person',
+                name: personName,
+                color: personColor
+            }));
+        }
+        
+        // 初始化Canvas尺寸
+        function initCanvasSize() {
+            const canvasWrap = mapDrawCanvas.parentElement;
+            mapDrawCanvas.width = canvasWrap.offsetWidth;
+            mapDrawCanvas.height = canvasWrap.offsetHeight;
+            // 重绘所有对象
+            redrawAllObjects();
+        }
+        
+        // 计算自适应文字大小（根据图形尺寸）
+        function getAdaptiveFontSize(obj) {
+            if (!obj || obj.type !== 'shape') return 14;
+            // 取图形宽/高的最小值，避免文字超出边界
+            const minSize = Math.min(obj.width, obj.height);
+            // 文字大小 = 最小尺寸的 1/8（可调整比例）
+            const fontSize = Math.max(12, Math.floor(minSize / 8));
+            return fontSize;
+        }
+        
+        // 重绘所有画板对象
+        function redrawAllObjects() {
+            if (!canvasCtx) return;
+            // 清空画布
+            canvasCtx.clearRect(0, 0, mapDrawCanvas.width, mapDrawCanvas.height);
+            
+            // 遍历所有对象绘制
+            drawObjects.forEach(obj => {
+                if (obj.type === 'person') {
+                    // 绘制人物节点（圆形）
+                    canvasCtx.fillStyle = obj.color;
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(obj.x, obj.y, 20, 0, Math.PI * 2);
+                    canvasCtx.fill();
+                    canvasCtx.strokeStyle = '#fff';
+                    canvasCtx.lineWidth = 2;
+                    canvasCtx.stroke();
+                    // 绘制人物名称
+                    canvasCtx.fillStyle = '#fff';
+                    canvasCtx.font = '12px sans-serif';
+                    canvasCtx.textAlign = 'center';
+                    canvasCtx.textBaseline = 'middle';
+                    canvasCtx.fillText(obj.name, obj.x, obj.y);
+                } else if (obj.type === 'shape') {
+                    // 绘制图形（正方形/圆形）
+                    canvasCtx.strokeStyle = obj.color;
+                    canvasCtx.fillStyle = `${obj.color}33`; // 半透明填充
+                    canvasCtx.lineWidth = 2;
+                    if (obj.shape === 'rect') {
+                        // 正方形
+                        canvasCtx.fillRect(obj.x, obj.y, obj.width, obj.height);
+                        canvasCtx.strokeRect(obj.x, obj.y, obj.width, obj.height);
+                    } else if (obj.shape === 'circle') {
+                        // 圆形（以起始点和结束点为对角线画圆）
+                        const radius = Math.sqrt(Math.pow(obj.width/2, 2) + Math.pow(obj.height/2, 2));
+                        canvasCtx.beginPath();
+                        canvasCtx.arc(obj.x + obj.width/2, obj.y + obj.height/2, radius, 0, Math.PI * 2);
+                        canvasCtx.fill();
+                        canvasCtx.stroke();
+                    }
+                    // 绘制图形名称（自适应大小）
+                    if (obj.name) {
+                        const fontSize = getAdaptiveFontSize(obj);
+                        canvasCtx.fillStyle = '#333';
+                        canvasCtx.font = `${fontSize}px sans-serif`;
+                        canvasCtx.textAlign = 'center';
+                        canvasCtx.textBaseline = 'middle';
+                        // 文字居中（图形中心）
+                        const centerX = obj.x + obj.width/2;
+                        const centerY = obj.y + obj.height/2;
+                        canvasCtx.fillText(obj.name, centerX, centerY);
+                    }
+                }
+            });
+        }
+        
+        // 选中图形工具
+        shapeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shapeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentShape = btn.dataset.shape;
+                // 隐藏操作按钮和输入框
+                hideShapeActions();
+                hideRenameInput();
+            });
+        });
+        
+        // 检测鼠标是否悬浮在图形上
+        function checkHoveredObject(mouseX, mouseY) {
+            // 查找悬浮的图形对象（只检测shape类型）
+            const hovered = drawObjects.find(obj => {
+                if (obj.type !== 'shape') return false;
+                
+                if (obj.shape === 'rect') {
+                    // 矩形检测：鼠标在矩形内部
+                    return mouseX >= obj.x && mouseX <= obj.x + obj.width && 
+                           mouseY >= obj.y && mouseY <= obj.y + obj.height;
+                } else if (obj.shape === 'circle') {
+                    // 圆形检测：鼠标到圆心的距离 <= 半径
+                    const centerX = obj.x + obj.width/2;
+                    const centerY = obj.y + obj.height/2;
+                    const radius = Math.sqrt(Math.pow(obj.width/2, 2) + Math.pow(obj.height/2, 2));
+                    const distance = Math.sqrt(Math.pow(mouseX - centerX, 2) + Math.pow(mouseY - centerY, 2));
+                    return distance <= radius;
+                }
+                return false;
+            });
+            
+            // 悬浮对象变化时更新
+            if (hovered !== hoveredObject) {
+                hoveredObject = hovered;
+                if (hoveredObject) {
+                    // 显示操作按钮
+                    showShapeActions(hoveredObject);
+                } else {
+                    // 隐藏操作按钮
+                    hideShapeActions();
+                    hideRenameInput();
+                }
+            }
+        }
+        
+        // 显示图形操作按钮（删除×、重命名）
+        function showShapeActions(obj) {
+            if (!obj || obj.type !== 'shape') return;
+            
+            // 1. 获取Canvas和图形的绝对坐标
+            const canvasRect = mapDrawCanvas.getBoundingClientRect();
+            const shapeAbsX = canvasRect.left + obj.x; // 图形绝对X
+            const shapeAbsY = canvasRect.top + obj.y;  // 图形绝对Y
+            
+            // 2. 设置操作容器的基础位置（对齐图形左上角）
+            mapShapeActions.style.display = 'block';
+            mapShapeActions.style.left = `${shapeAbsX}px`;
+            mapShapeActions.style.top = `${shapeAbsY}px`;
+            
+            // 3. 调整删除按钮（图形右上角，向内偏移2px）
+            shapeDeleteBtn.style.right = '2px';
+            shapeDeleteBtn.style.top = '2px';
+            
+            // 4. 调整重命名按钮（图形中心下方）
+            shapeRenameBtn.style.left = `${obj.width / 2}px`;
+            shapeRenameBtn.style.top = `${obj.height / 2 + 10}px`;
+            shapeRenameBtn.style.transform = 'translateX(-50%)';
+        }
+        
+        // 隐藏图形操作按钮
+        function hideShapeActions() {
+            mapShapeActions.style.display = 'none';
+            hoveredObject = null;
+        }
+        
+        // 显示重命名输入框
+        function showRenameInput(obj) {
+            if (!obj || obj.type !== 'shape') return;
+            
+            currentRenameObj = obj;
+            const rect = mapDrawCanvas.getBoundingClientRect();
+            const canvasOffsetX = rect.left;
+            const canvasOffsetY = rect.top;
+            const centerX = obj.x + obj.width/2;
+            const centerY = obj.y + obj.height/2;
+            
+            // 计算输入框尺寸（自适应图形宽度）
+            const inputWidth = Math.min(200, obj.width - 20); // 最大200px，最小留20px边距
+            const fontSize = getAdaptiveFontSize(obj);
+            
+            // 定位输入框（图形中心）
+            shapeRenameInput.style.display = 'block';
+            shapeRenameInput.style.width = `${inputWidth}px`;
+            shapeRenameInput.style.fontSize = `${fontSize}px`;
+            shapeRenameInput.style.left = `${(centerX - inputWidth/2) + canvasOffsetX}px`;
+            shapeRenameInput.style.top = `${(centerY - shapeRenameInput.offsetHeight/2) + canvasOffsetY}px`;
+            
+            // 填充原有名称，聚焦输入框
+            shapeRenameInput.value = obj.name || '';
+            shapeRenameInput.focus();
+            // 隐藏操作按钮
+            hideShapeActions();
+        }
+        
+        // 隐藏重命名输入框
+        function hideRenameInput() {
+            shapeRenameInput.style.display = 'none';
+            currentRenameObj = null;
+        }
+        
+        // 保存图形重命名结果
+        function saveRenameResult() {
+            if (!currentRenameObj) return;
+            // 更新图形名称
+            currentRenameObj.name = shapeRenameInput.value.trim();
+            // 重绘所有对象
+            redrawAllObjects();
+            // 隐藏输入框
+            hideRenameInput();
+        }
+        
+       // 画板鼠标移动（悬浮检测+绘制中）- 修复悬浮逻辑
+function handleCanvasMouseMove(e) {
+    if (!canvasCtx) return;
+    
+    // 1. 绘制中逻辑（优先）
+    if (isDrawing && currentShape) {
+        const rect = mapDrawCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        // 临时重绘（清空+已有对象+当前绘制图形）
+        canvasCtx.clearRect(0, 0, mapDrawCanvas.width, mapDrawCanvas.height);
+        redrawAllObjects();
+        
+        // 绘制当前临时图形
+        canvasCtx.strokeStyle = '#1677ff';
+        canvasCtx.fillStyle = 'rgba(22, 119, 255, 0.2)';
+        canvasCtx.lineWidth = 2;
+        const width = currentX - startX;
+        const height = currentY - startY;
+        
+        if (currentShape === 'rect') {
+            canvasCtx.fillRect(startX, startY, width, height);
+            canvasCtx.strokeRect(startX, startY, width, height);
+        } else if (currentShape === 'circle') {
+            const radius = Math.sqrt(Math.pow(width/2, 2) + Math.pow(height/2, 2));
+            canvasCtx.beginPath();
+            canvasCtx.arc(startX + width/2, startY + height/2, radius, 0, Math.PI * 2);
+            canvasCtx.fill();
+            canvasCtx.stroke();
+        }
+        return;
+    }
+    
+    // 2. 悬浮检测逻辑（非绘制时）- 修复坐标计算
+    const rect = mapDrawCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    checkHoveredObject(mouseX, mouseY);
+    
+    // 3. 鼠标移出Canvas时，隐藏所有操作元素
+    if (mouseX < 0 || mouseX > canvasRect.width || mouseY < 0 || mouseY > canvasRect.height) {
+        hideShapeActions();
+        hideRenameInput();
+    }
+}
+        
+        // 画板鼠标按下（开始绘制）
+        function handleCanvasMouseDown(e) {
+            if (!currentShape || hoveredObject) return; // 悬浮图形时不触发绘制
+            isDrawing = true;
+            // 获取Canvas相对坐标
+            const rect = mapDrawCanvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            // 隐藏操作按钮和输入框
+            hideShapeActions();
+            hideRenameInput();
+        }
+        
+        // 画板鼠标抬起（结束绘制）
+        function handleCanvasMouseUp(e) {
+            if (!isDrawing || !currentShape) return;
+            isDrawing = false;
+            const rect = mapDrawCanvas.getBoundingClientRect();
+            const endX = e.clientX - rect.left;
+            const endY = e.clientY - rect.top;
+            
+            // 计算图形尺寸（确保宽高为正）
+            const width = Math.abs(endX - startX);
+            const height = Math.abs(endY - startY);
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            
+            // 过滤极小图形（避免误操作）
+            if (width < 20 || height < 20) return;
+            
+            // 新增图形对象
+            const newShape = {
+                type: 'shape',
+                shape: currentShape,
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                color: '#1677ff',
+                name: '',
+                id: Date.now()
+            };
+            drawObjects.push(newShape);
+            
+            // 重绘所有对象
+            redrawAllObjects();
+        }
+        
+        // 绑定删除按钮点击事件
+        shapeDeleteBtn.addEventListener('click', () => {
+            if (!hoveredObject) return;
+            // 从对象数组中移除当前悬浮图形
+            drawObjects = drawObjects.filter(obj => obj.id !== hoveredObject.id);
+            // 重绘所有对象
+            redrawAllObjects();
+            // 隐藏操作按钮
+            hideShapeActions();
+        });
+        
+        // 绑定重命名按钮点击事件
+        shapeRenameBtn.addEventListener('click', () => {
+            if (!hoveredObject) return;
+            showRenameInput(hoveredObject);
+        });
+        
+        // 绑定重命名输入框事件（回车/失焦保存）
+        shapeRenameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveRenameResult();
+            }
+        });
+        
+        shapeRenameInput.addEventListener('blur', () => {
+            saveRenameResult();
+        });
+        
+        // 画板拖拽放下（人物节点）
+        function handleCanvasDrop(e) {
+            e.preventDefault();
+            const dataStr = e.dataTransfer.getData('text/plain');
+            try {
+                const data = JSON.parse(dataStr);
+                if (data.type === 'person') {
+                    const rect = mapDrawCanvas.getBoundingClientRect();
+                    const dropX = e.clientX - rect.left;
+                    const dropY = e.clientY - rect.top;
+                    
+                    // 新增人物对象
+                    const newPerson = {
+                        type: 'person',
+                        name: data.name,
+                        color: data.color,
+                        x: dropX,
+                        y: dropY,
+                        id: Date.now()
+                    };
+                    drawObjects.push(newPerson);
+                    
+                    // 重绘所有对象
+                    redrawAllObjects();
+                }
+            } catch (err) {
+                console.error('拖拽数据解析失败:', err);
+            }
+        }
+        
+        // 阻止拖拽默认行为（允许放下）
+        function handleCanvasDragOver(e) {
+            e.preventDefault();
+        }
+        
+        // 点击画板空白处隐藏输入框
+        mapDrawCanvas.addEventListener('click', (e) => {
+            if (!hoveredObject && !isDrawing) {
+                hideRenameInput();
+            }
+        });
+        
+        // 打开推理画板弹窗
+        function handleOpenMapDraw() {
+            mapDrawModal.style.display = 'flex';
+            // 初始化Canvas尺寸
+            initCanvasSize();
+            // 重绘所有对象
+            redrawAllObjects();
+            // 窗口大小变化时更新Canvas
+            window.addEventListener('resize', initCanvasSize);
+            // 隐藏操作按钮和输入框
+            hideShapeActions();
+            hideRenameInput();
+        }
+        
+        // 关闭推理画板弹窗
+        function handleCloseMapDraw() {
+            mapDrawModal.style.display = 'none';
+            // 移除窗口大小变化监听
+            window.removeEventListener('resize', initCanvasSize);
+            // 重置图形工具选中状态
+            shapeBtns.forEach(b => b.classList.remove('active'));
+            currentShape = null;
+        }
+        
+        // 绑定画板相关事件
+        function bindMapDrawEvents() {
+            // 打开/关闭弹窗
+            openMapDrawBtn.addEventListener('click', handleOpenMapDraw);
+            mapCloseBtn.addEventListener('click', handleCloseMapDraw);
+            
+            // Canvas事件
+            if (canvasCtx) {
+                mapDrawCanvas.addEventListener('mousedown', handleCanvasMouseDown);
+                mapDrawCanvas.addEventListener('mousemove', handleCanvasMouseMove);
+                mapDrawCanvas.addEventListener('mouseup', handleCanvasMouseUp);
+                mapDrawCanvas.addEventListener('drop', handleCanvasDrop);
+                mapDrawCanvas.addEventListener('dragover', handleCanvasDragOver);
+            }
+        }
+        
+        // 初始化推理画板事件绑定
+        bindMapDrawEvents();
+
+        // ===================== 原有事件绑定 =====================
+        sendBtn.addEventListener('click', handleSendMessage);
+        userInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSendMessage(); 
+            }
+        });
+        downloadBtn.addEventListener('click', downloadCopyAsNewFile);
+
+        window.onload = async () => {
+            try {
+                await loadOriginalAndCreateCopy();
+                initGraphWithCopy();
+                userInput.focus();
+                updateStatus('✅ 系统就绪 | 所有修改仅作用于内存副本，可点击「保存当前副本」导出');
+            } catch (err) {
+                console.error('初始化失败:', err);
+            }
+        };
+    </script>
+</body>
+</html>
